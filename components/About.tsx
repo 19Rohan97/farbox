@@ -4,7 +4,7 @@ import { site } from '../content/site';
 
 export function About() {
   return (
-    <section id="about" className="py-24 border-t border-gray-100 dark:border-gray-800">
+    <section id="about" className="overflow-hidden py-24 border-t border-gray-100 dark:border-gray-800">
       <Container>
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div className="relative">

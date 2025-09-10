@@ -4,7 +4,7 @@ import { ShapesBackdrop } from './ShapesBackdrop';
 
 export function BookCall() {
   return (
-    <section id="call" className="py-24 border-t border-gray-100 dark:border-gray-800">
+    <section id="call" className="overflow-hidden py-24 border-t border-gray-100 dark:border-gray-800">
       <Container>
         <div className="relative overflow-hidden rounded-3xl border border-brand-500/30 bg-white px-6 py-10 text-gray-900 shadow-md sm:p-12 dark:bg-neutral-950 dark:text-gray-100">
           <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-brand-500/5 to-transparent" />

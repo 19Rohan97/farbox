@@ -4,7 +4,7 @@ import { site } from '../content/site';
 
 export function Clients() {
   return (
-    <section id="clients" className="py-20 border-t border-gray-100 dark:border-gray-800">
+    <section id="clients" className="overflow-hidden py-20 border-t border-gray-100 dark:border-gray-800">
       <Container>
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">{site.clients.title}</h2>

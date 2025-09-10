@@ -2,7 +2,7 @@ import { Container } from './Container';
 
 export function Belief({ title, quote }: { title: string; quote: string }) {
   return (
-    <section className="relative py-24 border-t border-gray-100 dark:border-gray-800">
+    <section className="relative overflow-hidden py-24 border-t border-gray-100 dark:border-gray-800">
       <Container>
         <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-gray-200 bg-white/70 p-10 text-center backdrop-blur-sm shadow-sm dark:border-gray-800 dark:bg-white/5">
           <div className="pointer-events-none absolute -left-10 -top-10 h-56 w-56 rounded-full bg-brand-500/15 blur-3xl" />

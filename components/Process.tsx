@@ -48,7 +48,7 @@ export function Process() {
   const images = ['/images/project-1.svg', '/images/project-2.svg', '/images/project-3.svg', '/images/project-4.svg'];
 
   return (
-    <section id="process" className="relative py-24 border-t border-gray-100 dark:border-gray-800">
+    <section id="process" className="relative overflow-hidden py-24 border-t border-gray-100 dark:border-gray-800">
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-1/2 bg-gradient-to-b from-brand-500/5 to-transparent dark:from-brand-500/10" />
       <Container>
         <div className="grid items-start gap-10 lg:grid-cols-2">

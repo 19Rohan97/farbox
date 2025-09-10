@@ -4,7 +4,7 @@ import { site } from '../content/site';
 export function Footer() {
   return (
     <footer className="bg-gray-900 text-white border-t-2 border-brand-500">
-      <Container className="py-14">
+      <Container className="pt-14 pb-28 md:pb-14">
         <div className="grid gap-10 sm:grid-cols-3">
           <div>
             <div className="text-lg font-semibold">Farbox Creative</div>
