@@ -5,6 +5,8 @@ import { Footer } from "../components/Footer";
 import { MobileNav } from "../components/MobileNav";
 import { Montserrat } from "next/font/google";
 
+import { Analytics } from "@vercel/analytics/next";
+
 const montserrat = Montserrat({
   subsets: ["latin"],
   display: "swap",
@@ -25,6 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={montserrat.variable}>
       <body className="antialiased bg-white text-gray-900 dark:bg-neutral-950 dark:text-gray-100">
+        <Analytics />ß
         <Header />
         <main className="md:pb-0">{children}</main>
         <Footer />
