@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Smooth scroll for anchor links */
+html {
+  scroll-behavior: smooth;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center px-5 py-3 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-brand-500;
+    @apply rounded-lg; /* 8px radius for both primary and secondary */
+  }
+  .btn-primary {
+    @apply btn bg-brand-500 text-white hover:opacity-90;
+  }
+  .btn-secondary {
+    @apply btn rounded-lg; /* inherit height from .btn, adjust radius to 8px */
+    @apply border border-gray-300 text-gray-900 hover:border-gray-400;
+    @apply dark:border-gray-700 dark:text-gray-100 dark:hover:border-gray-600;
+  }
+  .card {
+    @apply rounded-2xl border border-gray-200 dark:border-gray-800;
+  }
+  .chip {
+    @apply inline-flex items-center rounded-lg border border-gray-200 px-3 py-1 text-xs text-gray-600 dark:border-gray-700 dark:text-gray-300;
+  }
+  .chip-brand {
+    @apply inline-flex items-center rounded-lg border border-brand-500/30 bg-brand-500/10 px-3 py-1 text-xs font-medium text-brand-500;
+  }
+}
+
+/* Marquee styles */
+.marquee {
+  --gap: 3rem;
+  display: flex;
+  overflow: hidden;
+  gap: var(--gap);
+}
+.marquee__track {
+  display: flex;
+  gap: var(--gap);
+  flex-wrap: nowrap;
+  min-width: 100%;
+  will-change: transform;
+  animation: marquee-left 40s linear infinite;
+}
+.marquee:hover .marquee__track {
+  animation-play-state: paused;
+}
+@keyframes marquee-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* Logo marquee */
+.logo-marquee {
+  --gap: 4rem;
+  display: flex;
+  overflow: hidden;
+  gap: var(--gap);
+}
+.logo-marquee__track {
+  display: flex;
+  gap: var(--gap);
+  flex-wrap: nowrap;
+  min-width: 100%;
+  will-change: transform;
+  animation: marquee-left 50s linear infinite;
+}
+.logo-marquee:hover .logo-marquee__track { animation-play-state: paused; }
+
+/* Reveal on scroll */
+.reveal-hidden { opacity: 0; transform: translateY(12px); transition: opacity .5s ease, transform .5s ease; }
+.reveal-in { opacity: 1; transform: translateY(0); }
+
+/* Subtle shape animations */
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes float-x {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(10px); }
+}
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+.anim-float-y { animation: float-y 6s ease-in-out infinite; will-change: transform; }
+.anim-float-x { animation: float-x 7s ease-in-out infinite; will-change: transform; }
+.anim-spin-slow { animation: spin-slow 20s linear infinite; will-change: transform; }
+.anim-delay-500 { animation-delay: .5s; }
+.anim-delay-1000 { animation-delay: 1s; }
+.anim-delay-1500 { animation-delay: 1.5s; }
