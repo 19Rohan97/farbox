@@ -1,8 +1,8 @@
 "use client";
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
-type NavItem = { href: string; label: string; icon: JSX.Element };
+type NavItem = { href: string; label: string; icon: ReactNode };
 
 const Icon = {
   home: (
