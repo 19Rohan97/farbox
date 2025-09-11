@@ -42,12 +42,17 @@ html {
   display: flex;
   gap: var(--gap);
   flex-wrap: nowrap;
-  min-width: 100%;
+  width: max-content;
   will-change: transform;
-  animation: marquee-left 40s linear infinite;
+  animation: marquee-left 140s linear infinite;
 }
-.marquee:hover .marquee__track {
-  animation-play-state: paused;
+.marquee:hover .marquee__track { animation-play-state: paused; }
+/* Speed up marquee on small screens */
+@media (max-width: 640px) {
+  .marquee {
+  --gap: 1.5rem;
+}
+  .marquee__track { animation-duration: 150s; }
 }
 @keyframes marquee-left {
   from { transform: translateX(0); }
@@ -74,6 +79,10 @@ html {
 /* Reveal on scroll */
 .reveal-hidden { opacity: 0; transform: translateY(12px); transition: opacity .5s ease, transform .5s ease; }
 .reveal-in { opacity: 1; transform: translateY(0); }
+
+/* Hide native scrollbars for horizontal drags */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
 
 /* Subtle shape animations */
 @keyframes float-y {
