@@ -129,7 +129,7 @@ export function Contact() {
             <div className="text-sm text-gray-500 dark:text-gray-400">
               Contact details
             </div>
-            <dl className="mt-4 space-y-3 text-sm">
+            <div className="mt-4 space-y-3 text-sm">
               <div className="flex items-center gap-3">
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500/10 text-brand-500">
                   <svg
@@ -204,7 +204,7 @@ export function Contact() {
                   </dd>
                 </div>
               </div>
-            </dl>
+            </div>
 
             <div className="mt-6 h-px w-full bg-gray-200 dark:bg-gray-800" />
             <div className="mt-6 text-sm text-gray-500 dark:text-gray-400">
