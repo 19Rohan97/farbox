@@ -27,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={montserrat.variable}>
       <body className="antialiased bg-white text-gray-900 dark:bg-neutral-950 dark:text-gray-100">
-        <Analytics />ß
+        <Analytics />
         <Header />
         <main className="md:pb-0">{children}</main>
         <Footer />
