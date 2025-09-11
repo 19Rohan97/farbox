@@ -1,3 +1,5 @@
+"use client";
+import { motion } from "framer-motion";
 import { Container } from "./Container";
 import { site } from "../content/site";
 
@@ -64,6 +66,8 @@ function SocialIcon({ label }: { label: string }) {
 }
 
 export function Contact() {
+  const container = { hidden: {}, show: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } } } as const;
+  const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } } } as const;
   return (
     <section
       id="contact"
@@ -72,14 +76,10 @@ export function Contact() {
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-1/2 bg-gradient-to-b from-brand-500/5 to-transparent dark:from-brand-500/10" />
       <Container>
         <div className="grid items-start gap-12 lg:grid-cols-2">
-          <div>
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              Tell me about your project
-            </h2>
-            <p className="mt-4 text-gray-600 dark:text-gray-300">
-              We’ll get back within 1–2 business days.
-            </p>
-            <div className="mt-8 card p-6 shadow-sm">
+          <motion.div variants={container} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }}>
+            <motion.h2 variants={item} className="text-3xl font-semibold tracking-tight sm:text-4xl">Tell me about your project</motion.h2>
+            <motion.p variants={item} className="mt-4 text-gray-600 dark:text-gray-300">We’ll get back within 1–2 business days.</motion.p>
+            <motion.div variants={item} className="mt-8 card p-6 shadow-sm">
               <form className="grid gap-4">
                 <div className="grid gap-2">
                   <label className="text-sm text-gray-700 dark:text-gray-300">
@@ -119,15 +119,13 @@ export function Contact() {
                     placeholder="Tell me about your project"
                   />
                 </div>
-                <div>
-                  <button type="submit" className="btn-primary w-full">
-                    Send
-                  </button>
-                </div>
+                <motion.div variants={item}>
+                  <button type="submit" className="btn-primary w-full">Send</button>
+                </motion.div>
               </form>
-            </div>
-          </div>
-          <aside className="rounded-2xl bg-white border border-gray-200 p-6 dark:border-gray-800">
+            </motion.div>
+          </motion.div>
+          <motion.aside variants={item} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} className="rounded-2xl bg-white border border-gray-200 p-6 dark:border-gray-800 dark:bg-transparent">
             <div className="text-sm text-gray-500 dark:text-gray-400">
               Contact details
             </div>
@@ -149,7 +147,7 @@ export function Contact() {
                   </svg>
                 </span>
                 <div>
-                  <dt className="text-gray-600 dark:text-gray-900">Email</dt>
+                  <dt className="text-gray-600 dark:text-white">Email</dt>
                   <dd className="font-medium text-gray-900 dark:text-gray-400">
                     <a href={`mailto:${site.contact.email}`}>
                       {site.contact.email}
@@ -173,7 +171,7 @@ export function Contact() {
                   </svg>
                 </span>
                 <div>
-                  <dt className="text-gray-600 dark:text-gray-900">Phone</dt>
+                  <dt className="text-gray-600 dark:text-white">Phone</dt>
                   <dd className="font-medium text-gray-900 dark:text-gray-400">
                     <a href={`tel:${site.contact.phone.replace(/\s/g, "")}`}>
                       {site.contact.phone}
@@ -200,7 +198,7 @@ export function Contact() {
                   </svg>
                 </span>
                 <div>
-                  <dt className="text-gray-600 dark:text-gray-900">Location</dt>
+                  <dt className="text-gray-600 dark:text-white">Location</dt>
                   <dd className="font-medium text-gray-900 dark:text-gray-400">
                     {site.contact.location}
                   </dd>
@@ -209,7 +207,7 @@ export function Contact() {
             </dl>
 
             <div className="mt-6 h-px w-full bg-gray-200 dark:bg-gray-800" />
-            <div className="mt-6 text-sm text-gray-500 dark:text-gray-900">
+            <div className="mt-6 text-sm text-gray-500 dark:text-gray-400">
               Socials
             </div>
             <div className="mt-3 flex flex-wrap gap-3">
@@ -221,22 +219,22 @@ export function Contact() {
                   aria-label={s.label}
                 >
                   <SocialIcon label={s.label} />
-                  <span className="dark:text-gray-900">{s.label}</span>
+                  <span className="dark:text-white">{s.label}</span>
                 </a>
               ))}
             </div>
 
-            <div className="mt-8">
+            <motion.div variants={item} className="mt-8">
               <a
                 href={site.tidycal}
                 target="_blank"
                 rel="noreferrer"
-                className="btn-secondary dark:text-gray-900"
+                className="btn-secondary dark:text-white"
               >
                 Book a 30‑min chat
               </a>
-            </div>
-          </aside>
+            </motion.div>
+          </motion.aside>
         </div>
       </Container>
     </section>

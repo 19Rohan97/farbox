@@ -1,5 +1,6 @@
 "use client";
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Container } from './Container';
 import { site } from '../content/site';
@@ -46,22 +47,24 @@ function StepIcon({ title }: { title: string }) {
 export function Process() {
   const [active, setActive] = useState(0);
   const images = ['/images/project-1.svg', '/images/project-2.svg', '/images/project-3.svg', '/images/project-4.svg'];
+  const container = { hidden: {}, show: { transition: { staggerChildren: 0.1, delayChildren: 0.05 } } } as const;
+  const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } } } as const;
 
   return (
     <section id="process" className="relative overflow-hidden py-24 border-t border-gray-100 dark:border-gray-800">
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-1/2 bg-gradient-to-b from-brand-500/5 to-transparent dark:from-brand-500/10" />
       <Container>
         <div className="grid items-start gap-10 lg:grid-cols-2">
-          <div>
-            <div className="max-w-2xl">
+          <motion.div variants={container} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }}>
+            <motion.div variants={item} className="max-w-2xl">
               <span className="chip-brand">Process</span>
               <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{site.process.title}</h2>
               <p className="mt-4 text-gray-600 dark:text-gray-300">{site.process.intro}</p>
-            </div>
+            </motion.div>
 
             <ol className="mt-8 space-y-4">
               {site.process.steps.map((s, idx) => (
-                <li key={s.title}>
+                <motion.li key={s.title} variants={item}>
                   <button
                     type="button"
                     onMouseEnter={() => setActive(idx)}
@@ -78,15 +81,21 @@ export function Process() {
                       </div>
                     </div>
                   </button>
-                </li>
+                </motion.li>
               ))}
             </ol>
-          </div>
+          </motion.div>
 
           <div className="sticky top-24 hidden lg:block">
             <div className="relative">
               <ShapesBackdrop />
-              <div className="relative overflow-hidden rounded-2xl border border-gray-200 shadow-sm dark:border-gray-800">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.98 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+                viewport={{ once: true, amount: 0.3 }}
+                className="relative overflow-hidden rounded-2xl border border-gray-200 shadow-sm dark:border-gray-800"
+              >
                 <div className="relative aspect-[4/3] bg-gray-50 dark:bg-neutral-900">
                   {site.process.steps.map((s, idx) => (
                     <div key={s.title} className={'absolute inset-0 transition-opacity duration-500 ' + (active === idx ? 'opacity-100' : 'opacity-0')}>
@@ -97,7 +106,7 @@ export function Process() {
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/30 to-transparent p-4 text-white">
                   <div className="text-sm">{site.process.steps[active]?.title}</div>
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
         </div>
