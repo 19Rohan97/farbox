@@ -141,7 +141,7 @@ export function Services() {
               >
                 <div className="relative aspect-[4/3]">
                   <Image
-                    src="/images/services-graphic.png"
+                    src="/images/services-graphic.webp"
                     alt="Computer vector graphic"
                     fill
                     className="object-cover"

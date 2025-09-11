@@ -81,7 +81,7 @@ export function Hero() {
             >
               <div className="relative aspect-[8/10] bg-white">
                 <Image
-                  src="/images/hero-man.png"
+                  src="/images/hero-man.webp"
                   alt="Hand drawn man sketch"
                   fill
                   className="object-cover"
