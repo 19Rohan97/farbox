@@ -76,7 +76,9 @@ function ServiceIcon({ title }: { title: string }) {
   );
 }
 
-export function Services() {
+export function Services({ services }: { services?: typeof site.services }) {
+  const content = services ?? site.services;
+
   const container = {
     hidden: {},
     show: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } },
@@ -107,13 +109,13 @@ export function Services() {
               variants={item}
               className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl"
             >
-              {site.services.title}
+              {content.title}
             </motion.h2>
             <motion.p
               variants={item}
               className="mt-4 text-gray-600 dark:text-gray-300"
             >
-              {site.services.subtitle}
+              {content.subtitle}
             </motion.p>
             <motion.div
               variants={item}
@@ -159,7 +161,7 @@ export function Services() {
           viewport={{ once: true, amount: 0.2 }}
           className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
         >
-          {site.services.items.map((s) => (
+          {content.items.map((s) => (
             <motion.div
               key={s.title}
               variants={item}
@@ -178,10 +180,10 @@ export function Services() {
             </motion.div>
           ))}
         </motion.div>
-        {site.services.note && (
+        {content.note && (
           <div className="mt-12">
             <div className="mx-auto max-w-3xl rounded-xl border border-brand-500/20 bg-white/70 px-5 py-4 text-center text-gray-700 backdrop-blur dark:border-brand-500/30 dark:bg-white/5 dark:text-gray-300">
-              {site.services.note}
+              {content.note}
             </div>
           </div>
         )}

@@ -65,7 +65,8 @@ function SocialIcon({ label }: { label: string }) {
   );
 }
 
-export function Contact() {
+export function Contact({ contact }: { contact?: typeof site.contact }) {
+  const content = contact ?? site.contact;
   const container = { hidden: {}, show: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } } } as const;
   const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } } } as const;
   return (
@@ -149,8 +150,8 @@ export function Contact() {
                 <div>
                   <dt className="text-gray-600 dark:text-white">Email</dt>
                   <dd className="font-medium text-gray-900 dark:text-gray-400">
-                    <a href={`mailto:${site.contact.email}`}>
-                      {site.contact.email}
+                    <a href={`mailto:${content.email}`}>
+                      {content.email}
                     </a>
                   </dd>
                 </div>
@@ -173,8 +174,8 @@ export function Contact() {
                 <div>
                   <dt className="text-gray-600 dark:text-white">Phone</dt>
                   <dd className="font-medium text-gray-900 dark:text-gray-400">
-                    <a href={`tel:${site.contact.phone.replace(/\s/g, "")}`}>
-                      {site.contact.phone}
+                    <a href={`tel:${content.phone.replace(/\s/g, "")}`}>
+                      {content.phone}
                     </a>
                   </dd>
                 </div>
@@ -200,7 +201,7 @@ export function Contact() {
                 <div>
                   <dt className="text-gray-600 dark:text-white">Location</dt>
                   <dd className="font-medium text-gray-900 dark:text-gray-400">
-                    {site.contact.location}
+                    {content.location}
                   </dd>
                 </div>
               </div>
@@ -211,7 +212,7 @@ export function Contact() {
               Socials
             </div>
             <div className="mt-3 flex flex-wrap gap-3">
-              {site.contact.socials.map((s) => (
+              {content.socials.map((s) => (
                 <a
                   key={s.label}
                   href={s.href}

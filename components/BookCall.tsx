@@ -4,7 +4,8 @@ import { Container } from './Container';
 import { site } from '../content/site';
 import { ShapesBackdrop } from './ShapesBackdrop';
 
-export function BookCall() {
+export function BookCall({ book }: { book?: typeof site.book }) {
+  const content = book ?? site.book;
   const container = { hidden: {}, show: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } } } as const;
   const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } } } as const;
   return (
@@ -36,9 +37,9 @@ export function BookCall() {
           <div className="grid items-center gap-8 lg:grid-cols-3">
             <motion.div variants={container} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} className="lg:col-span-2">
               <motion.span variants={item} className="chip-brand">Let’s talk</motion.span>
-              <motion.h2 variants={item} className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{site.book.title}</motion.h2>
+              <motion.h2 variants={item} className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{content.title}</motion.h2>
               <motion.ul variants={container} className="mt-6 grid gap-3">
-                {site.book.paragraphs.map((p, i) => (
+                {content.paragraphs.map((p, i) => (
                   <motion.li key={i} variants={item} className="inline-flex items-start gap-3 text-gray-800 dark:text-gray-200">
                     <span>{p}</span>
                   </motion.li>

@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { Container } from './Container';
 import { site } from '../content/site';
 
-export function About() {
+export function About({ about }: { about?: typeof site.about }) {
+  const content = about ?? site.about;
   const container = { hidden: {}, show: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } } } as const;
   const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } } } as const;
   return (
@@ -25,18 +26,18 @@ export function About() {
               className="relative overflow-hidden rounded-3xl border border-gray-200 shadow-sm dark:border-gray-800"
             >
               <div className="relative aspect-[16/16] bg-gray-50 dark:bg-neutral-900">
-                <Image src={site.about.photo} alt={site.about.ceoName ?? 'Team'} fill className="object-cover" />
+                <Image src={content.photo} alt={content.ceoName ?? 'Team'} fill className="object-cover" />
               </div>
             </motion.div>
           </div>
 
           <motion.div variants={container} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.4 }} className="max-w-xl">
             <motion.span variants={item} className="chip-brand">About</motion.span>
-            <motion.h2 variants={item} className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{site.about.title}</motion.h2>
-            <motion.p variants={item} className="mt-4 text-gray-700 dark:text-gray-300 text-lg">{site.about.body}</motion.p>
+            <motion.h2 variants={item} className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{content.title}</motion.h2>
+            <motion.p variants={item} className="mt-4 text-gray-700 dark:text-gray-300 text-lg">{content.body}</motion.p>
 
             <motion.ul variants={container} className="mt-6 grid gap-3 sm:grid-cols-2 text-sm text-gray-700 dark:text-gray-300">
-              {site.about.highlights.map((h) => (
+              {content.highlights.map((h) => (
                 <motion.li key={h} variants={item} className="flex items-start gap-3">
                   <span className="mt-1 inline-block h-2 w-2 rounded-full bg-brand-500" />
                   <span>{h}</span>
@@ -44,11 +45,11 @@ export function About() {
               ))}
             </motion.ul>
 
-            {site.about.ceoNote && (
+            {content.ceoNote && (
               <motion.blockquote variants={item} className="mt-8 rounded-2xl border border-gray-200 bg-white/60 p-5 italic text-gray-800 backdrop-blur dark:border-gray-800 dark:bg-white/5 dark:text-gray-200">
-                “{site.about.ceoNote}”
+                “{content.ceoNote}”
                 <footer className="mt-3 text-sm not-italic text-gray-600 dark:text-gray-400">
-                  — {site.about.ceoName}, {site.about.ceoTitle}
+                  — {content.ceoName}, {content.ceoTitle}
                 </footer>
               </motion.blockquote>
             )}

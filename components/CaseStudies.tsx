@@ -5,8 +5,9 @@ import { Container } from "./Container";
 import { ShapesBackdrop } from "./ShapesBackdrop";
 import { site } from "../content/site";
 
-export function CaseStudies() {
-  const cs = site.caseStudies.items;
+export function CaseStudies({ caseStudies }: { caseStudies?: typeof site.caseStudies }) {
+  const content = caseStudies ?? site.caseStudies;
+  const cs = content.items;
   const container = { hidden: {}, show: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } } } as const;
   const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } } } as const;
   return (
@@ -15,8 +16,8 @@ export function CaseStudies() {
       <Container>
         <motion.div variants={container} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.4 }} className="mx-auto max-w-2xl text-center">
           <motion.span variants={item} className="chip-brand">Case Studies</motion.span>
-          <motion.h2 variants={item} className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{site.caseStudies.title}</motion.h2>
-          <motion.p variants={item} className="mt-4 text-gray-600 dark:text-gray-300">{site.caseStudies.intro}</motion.p>
+          <motion.h2 variants={item} className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{content.title}</motion.h2>
+          <motion.p variants={item} className="mt-4 text-gray-600 dark:text-gray-300">{content.intro}</motion.p>
         </motion.div>
 
         {cs.map((study, idx) => {

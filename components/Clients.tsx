@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Container } from './Container';
 import { site } from '../content/site';
 
-export function Clients() {
+export function Clients({ clients, clientLogos }: { clients?: { title: string }; clientLogos?: ReadonlyArray<{ src: string; alt: string }> }) {
+  const heading = clients ?? site.clients;
+  const logos: ReadonlyArray<{ src: string; alt: string }> = clientLogos ?? site.clientLogos;
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [dragging, setDragging] = useState(false);
   const startX = useRef(0);
@@ -122,7 +124,7 @@ export function Clients() {
     <section id="clients" className="overflow-hidden py-20 border-t border-gray-100 dark:border-gray-800">
       <Container>
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">{site.clients.title}</h2>
+          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">{heading.title}</h2>
         </div>
         <div className="relative mt-10">
           <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-white to-transparent dark:from-neutral-950" />
@@ -138,7 +140,7 @@ export function Clients() {
             aria-label="Client logos carousel"
           >
             <div className="flex gap-16 px-4 py-2">
-              {[...site.clientLogos, ...site.clientLogos, ...site.clientLogos].map((logo, i) => (
+              {[...logos, ...logos, ...logos].map((logo, i) => (
                 <div key={i} className="flex items-center justify-center opacity-80 transition hover:opacity-100">
                   <div className="relative h-40 w-40 overflow-hidden rounded-full border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-neutral-900">
                     <Image
