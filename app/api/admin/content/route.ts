@@ -2,7 +2,31 @@ import { NextResponse } from 'next/server';
 import { createAnonServerClient, createServiceServerClient } from '../../../../utils/supabase/server';
 import { site as fallback } from '../../../../content/site';
 
-export async function GET() {
+// Simple in-memory rate limiter per IP
+const WINDOW_MS = 60_000; // 1 minute
+const LIMIT_GET = 60; // max 60 GET/min per IP
+const LIMIT_POST = 20; // max 20 POST/min per IP
+const hits = new Map<string, number[]>();
+
+function getIp(req: Request): string {
+  const h = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim();
+  return h || (req.headers.get('x-real-ip') || '') || 'unknown';
+}
+function allow(req: Request, limit: number): boolean {
+  const ip = getIp(req);
+  const now = Date.now();
+  const arr = (hits.get(ip) || []).filter((t) => now - t < WINDOW_MS);
+  if (arr.length >= limit) return false;
+  arr.push(now);
+  hits.set(ip, arr);
+  return true;
+}
+
+export async function GET(req: Request) {
+  // rate limit GET
+  if (!allow(req, LIMIT_GET)) {
+    return NextResponse.json({ ok: false, error: 'Rate limit exceeded' }, { status: 429 });
+  }
   try {
     const supabase = createAnonServerClient();
     const { data, error } = await supabase.from('sections').select('id, data');
@@ -20,6 +44,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  if (!allow(req, LIMIT_POST)) {
+    return NextResponse.json({ ok: false, error: 'Rate limit exceeded' }, { status: 429 });
+  }
   try {
     const body = await req.json();
     const { section, data } = body || {};

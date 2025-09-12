@@ -5,7 +5,28 @@ import path from 'path';
 
 export const runtime = 'nodejs';
 
+// Simple in-memory rate limiter per IP
+const WINDOW_MS = 60_000; // 1 minute
+const LIMIT_POST = 15; // max uploads/min per IP
+const hits = new Map<string, number[]>();
+function getIp(req: Request): string {
+  const h = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim();
+  return h || (req.headers.get('x-real-ip') || '') || 'unknown';
+}
+function allow(req: Request, limit: number): boolean {
+  const ip = getIp(req);
+  const now = Date.now();
+  const arr = (hits.get(ip) || []).filter((t) => now - t < WINDOW_MS);
+  if (arr.length >= limit) return false;
+  arr.push(now);
+  hits.set(ip, arr);
+  return true;
+}
+
 export async function POST(req: Request) {
+  if (!allow(req, LIMIT_POST)) {
+    return NextResponse.json({ ok: false, error: 'Rate limit exceeded' }, { status: 429 });
+  }
   try {
     const form = await req.formData();
     const file = form.get('file') as File | null;
@@ -46,4 +67,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: e?.message || 'Upload failed' }, { status: 500 });
   }
 }
-

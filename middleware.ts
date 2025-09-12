@@ -8,10 +8,16 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const auth = req.headers.get('authorization');
-  const BASIC_USER = process.env.ADMIN_USER || 'admin';
-  const BASIC_PASS = process.env.ADMIN_PASS || 'password123';
+  const BASIC_USER = process.env.ADMIN_USER;
+  const BASIC_PASS = process.env.ADMIN_PASS;
 
+  // Enforce non-default, explicit credentials in env. Block if missing or default-ish.
+  const invalidCreds = !BASIC_USER || !BASIC_PASS || BASIC_USER === 'admin' || BASIC_PASS === 'password123';
+  if (invalidCreds) {
+    return new NextResponse('Admin credentials not configured. Set ADMIN_USER and ADMIN_PASS to non-default values.', { status: 500 });
+  }
+
+  const auth = req.headers.get('authorization');
   if (auth && auth.startsWith('Basic ')) {
     try {
       const base64 = auth.split(' ')[1];
@@ -30,4 +36,3 @@ export function middleware(req: NextRequest) {
 export const config = {
   matcher: ['/admin/:path*', '/api/admin/:path*'],
 };
-

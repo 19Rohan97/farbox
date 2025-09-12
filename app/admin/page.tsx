@@ -591,6 +591,16 @@ function SettingsEditor({ value, onChange }: { value: any; onChange: (v: any) =>
         <Field label="Card Type"><TextInput value={v.twitterCard || 'summary_large_image'} onChange={(e) => up('twitterCard', e.target.value)} placeholder="summary_large_image" /></Field>
         <Field label="@Site"><TextInput value={v.twitterSite || ''} onChange={(e) => up('twitterSite', e.target.value)} placeholder="@yourhandle" /></Field>
       </div>
+      <hr className="my-4 border-gray-200 dark:border-gray-800" />
+      <div className="space-y-2">
+        <div className="text-sm font-medium">Sitemap & Robots</div>
+        <div className="text-xs text-gray-600 dark:text-gray-400">Generated dynamically from Settings. Use the links to preview.</div>
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <a href="/sitemap.xml" target="_blank" rel="noreferrer" className="btn-secondary">Open sitemap.xml</a>
+          <a href="/robots.txt" target="_blank" rel="noreferrer" className="btn-secondary">Open robots.txt</a>
+        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">Set a Canonical URL above to ensure absolute URLs.</div>
+      </div>
     </div>
   );
 }
