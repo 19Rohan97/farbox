@@ -8,6 +8,7 @@ export type Post = {
   tags?: string[];
   content: string[]; // simple paragraphs for now
   contentMd?: string; // optional markdown content
+  audioUrl?: string; // optional podcast audio
 };
 
 export const posts: readonly Post[] = [

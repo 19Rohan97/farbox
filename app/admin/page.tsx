@@ -1,12 +1,13 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
 import { site as fallback } from '../../content/site';
+import { Markdown } from '../../components/Markdown';
 
 type SectionKey =
   | 'hero' | 'marquee' | 'services' | 'process' | 'beliefs' | 'clients' | 'clientLogos'
-  | 'caseStudies' | 'about' | 'book' | 'contact' | 'schema' | 'settings';
+  | 'caseStudies' | 'about' | 'book' | 'contact' | 'schema' | 'settings' | 'posts';
 
-const SECTIONS: { key: SectionKey; label: string }[] = [
+const HOME_SECTIONS: { key: SectionKey; label: string }[] = [
   { key: 'hero', label: 'Hero' },
   { key: 'marquee', label: 'Capabilities' },
   { key: 'services', label: 'Services' },
@@ -18,8 +19,6 @@ const SECTIONS: { key: SectionKey; label: string }[] = [
   { key: 'about', label: 'About' },
   { key: 'book', label: 'Book a Call' },
   { key: 'contact', label: 'Contact' },
-  { key: 'schema', label: 'Schema (JSON‑LD)' },
-  { key: 'settings', label: 'Settings' },
 ];
 
 // Small UI helpers
@@ -83,7 +82,7 @@ function Toasts({ items, onClose }: { items: Toast[]; onClose: (id: number) => v
   );
 }
 
-function ImageUpload({ value, onChange, buttonLabel = 'Upload image' }: { value?: string; onChange: (url: string) => void; buttonLabel?: string }) {
+function ImageUpload({ value, onChange, buttonLabel = 'Upload image', accept = 'image/*' }: { value?: string; onChange: (url: string) => void; buttonLabel?: string; accept?: string }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,7 +105,7 @@ function ImageUpload({ value, onChange, buttonLabel = 'Upload image' }: { value?
   };
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <input type="file" accept="image/*" onChange={onPick} disabled={busy} className="text-xs" />
+      <input type="file" accept={accept} onChange={onPick} disabled={busy} className="text-xs" />
       <span className="text-xs text-gray-500">{busy ? 'Uploading…' : buttonLabel}</span>
       {value && <a href={value} target="_blank" rel="noreferrer" className="text-xs text-brand-500 underline">Preview</a>}
       {err && <span className="text-xs text-red-600">{err}</span>}
@@ -605,6 +604,147 @@ function SettingsEditor({ value, onChange }: { value: any; onChange: (v: any) =>
   );
 }
 
+// Blog Posts editor
+type PostSummary = { slug: string; title: string; date?: string; published?: boolean };
+type PostItem = { slug: string; title: string; excerpt?: string; content_md?: string; cover_image?: string; author?: string; tags?: string[]; date?: string; published?: boolean; audio_url?: string };
+
+function PostsEditor() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [items, setItems] = useState<PostSummary[]>([]);
+  const [query, setQuery] = useState('');
+  const [publishedOnly, setPublishedOnly] = useState(true);
+  const [current, setCurrent] = useState<PostItem | null>(null);
+  const [preview, setPreview] = useState(true);
+
+  const fetchList = async () => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (query) params.set('q', query);
+    if (publishedOnly) params.set('published', 'true');
+    let j: any = { ok: false };
+    try {
+      const res = await fetch(`/api/admin/posts?${params.toString()}`, { cache: 'no-store' });
+      j = await res.json();
+    } catch (e: any) {
+      alert(e?.message || 'Failed to load posts');
+    }
+    setLoading(false);
+    if (j.ok) setItems(j.items || []); else alert(j.error || 'Failed to load posts');
+  };
+  useEffect(() => { fetchList(); }, []);
+
+  const loadPost = async (slug: string) => {
+    setSaving(true);
+    const res = await fetch(`/api/admin/posts/${slug}`);
+    const j = await res.json();
+    setSaving(false);
+    if (j.ok) setCurrent(j.item as PostItem);
+  };
+
+  const newPost = () => setCurrent({ slug: '', title: '', excerpt: '', content_md: '', cover_image: '', author: '', tags: [], date: new Date().toISOString().slice(0,10), published: false, audio_url: '' });
+  const up = (k: keyof PostItem, v: any) =>
+    setCurrent((p): PostItem => ({ ...(p ?? { slug: '', title: '' }), [k]: v }));
+  const slugify = (s: string) => (s || '').toLowerCase().trim().replace(/&/g,'and').replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-').replace(/(^-|-$)/g,'');
+
+  const save = async () => {
+    if (!current) return;
+    setSaving(true);
+    const payload = { ...current, tags: Array.isArray(current.tags) ? current.tags : [] };
+    let j: any = { ok: false };
+    try {
+      const res = await fetch('/api/admin/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      j = await res.json();
+    } catch (e: any) {
+      alert(e?.message || 'Failed to save');
+    }
+    setSaving(false);
+    if (j.ok) { await fetchList(); } else { alert(j.error || 'Failed to save'); }
+  };
+  const del = async () => {
+    if (!current?.slug) return;
+    if (!confirm('Delete this post?')) return;
+    setSaving(true);
+    const res = await fetch(`/api/admin/posts/${current.slug}`, { method: 'DELETE' });
+    const j = await res.json();
+    setSaving(false);
+    if (j.ok) { setCurrent(null); await fetchList(); }
+  };
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-3">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/5">
+        <div className="flex items-center gap-2">
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search title…" className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-neutral-900" />
+          <button onClick={fetchList} className="btn-secondary text-xs">Search</button>
+        </div>
+        <div className="mt-3 flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
+          <label className="inline-flex items-center gap-2"><input type="checkbox" checked={publishedOnly} onChange={(e) => setPublishedOnly(e.target.checked)} /> Published only</label>
+          <button onClick={newPost} className="btn-primary text-xs">New Post</button>
+        </div>
+        <ul className="mt-4 divide-y divide-gray-200 dark:divide-gray-800 max-h-[24rem] overflow-auto">
+          {loading ? <li className="p-3 text-sm text-gray-600">Loading…</li> : (items || []).map((it) => (
+            <li key={it.slug} className="p-3 hover:bg-gray-50 dark:hover:bg-white/5">
+              <button onClick={() => loadPost(it.slug)} className="w-full text-left">
+                <div className="text-sm font-medium">{it.title}</div>
+                <div className="text-xs text-gray-500">{it.slug}</div>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/5">
+        {!current ? (
+          <div className="text-sm text-gray-600 dark:text-gray-400">Select a post on the left or click New Post.</div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="Title"><TextInput value={current.title || ''} onChange={(e) => { const t = e.target.value; up('title', t); if (!current.slug) up('slug', slugify(t)); }} /></Field>
+              <Field label="Slug"><TextInput value={current.slug || ''} onChange={(e) => up('slug', slugify(e.target.value))} /></Field>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="Author"><TextInput value={current.author || ''} onChange={(e) => up('author', e.target.value)} /></Field>
+              <Field label="Date"><TextInput type="date" value={(current.date || '').slice(0,10)} onChange={(e) => up('date', e.target.value)} /></Field>
+            </div>
+            <Field label="Excerpt"><Textarea rows={2} value={current.excerpt || ''} onChange={(e) => up('excerpt', e.target.value)} /></Field>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="Cover image URL"><TextInput value={current.cover_image || ''} onChange={(e) => up('cover_image', e.target.value)} /></Field>
+              <div className="pt-6"><ImageUpload value={current.cover_image} onChange={(url) => up('cover_image', url)} buttonLabel="Upload cover" accept="image/*" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="Audio/Video URL (podcast)"><TextInput value={current.audio_url || ''} onChange={(e) => up('audio_url', e.target.value)} placeholder="https://.../audio.mp3 or video.mp4" /></Field>
+              <div className="pt-6"><ImageUpload value={current.audio_url} onChange={(url) => up('audio_url', url)} buttonLabel="Upload media" accept="audio/*,video/*" /></div>
+            </div>
+            <div>
+              <Label>Tags</Label>
+              <ReorderablePillsEditor value={Array.isArray(current.tags) ? current.tags : []} onChange={(arr) => up('tags', arr)} placeholder="tag" />
+            </div>
+            <div className="flex items-center justify-between">
+              <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={!!current.published} onChange={(e) => up('published', e.target.checked)} /> Published</label>
+              <div className="flex gap-2">
+                <button onClick={save} disabled={saving} className="btn-cta text-xs">{saving ? 'Saving…' : 'Save Post'}</button>
+                <button onClick={del} disabled={saving || !current.slug} className="btn-secondary text-xs">Delete</button>
+              </div>
+            </div>
+            <div className="grid gap-3 lg:grid-cols-2">
+              <div>
+                <Label>Content (Markdown)</Label>
+                <Textarea rows={14} value={current.content_md || ''} onChange={(e) => up('content_md', e.target.value)} />
+              </div>
+              <div>
+                <div className="flex items-center justify-between"><Label>Preview</Label><button type="button" onClick={() => setPreview((p) => !p)} className="text-xs underline">{preview ? 'Hide' : 'Show'}</button></div>
+                <div className="mt-2 rounded-lg border border-gray-200 p-3 dark:border-gray-800">
+                  {preview && <div className="article-content"><Markdown content={current.content_md || ''} /></div>}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SchemaEditor({ value, onChange, contextData, onToast }: { value: any; onChange: (v: any) => void; contextData: any; onToast?: (msg: string, kind?: 'success' | 'error' | 'info') => void }) {
   const [text, setText] = useState<string>('');
   const [err, setErr] = useState<string | null>(null);
@@ -1005,20 +1145,12 @@ export default function AdminPage() {
 
         <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-4">
           <aside className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-white/5">
-            <ul className="space-y-1 text-sm">
-              {SECTIONS.map((s) => (
-                <li key={s.key}>
-                  <button onClick={() => setTab(s.key)} className={`w-full rounded-md px-3 py-2 text-left ${tab === s.key ? 'bg-brand-500 text-white' : 'hover:bg-gray-100 dark:hover:bg-white/10'}`}>
-                    {s.label}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <Sidebar tab={tab} setTab={setTab} />
           </aside>
           <section className="md:col-span-3">
             <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/5">
               <div className="flex items-center justify-between">
-                <h2 className="font-semibold">{SECTIONS.find(s => s.key === tab)?.label}</h2>
+                <h2 className="font-semibold">{getSectionLabel(tab)}</h2>
                 <div className="text-xs text-gray-500">Section key: <code>{tab}</code></div>
               </div>
               <div className="mt-4">
@@ -1060,6 +1192,7 @@ export default function AdminPage() {
                       </div>
                     )}
                     {tab === 'settings' && <SettingsEditor value={sectionValue} onChange={setSection} />}
+                    {tab === 'posts' && <PostsEditor />}
                   </div>
                 )}
               </div>
@@ -1079,4 +1212,44 @@ export default function AdminPage() {
       </div>
     </main>
   );
+}
+function Sidebar({ tab, setTab }: { tab: SectionKey; setTab: (k: SectionKey) => void }) {
+  return (
+    <aside className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-white/5">
+      <div className="px-2 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400">Home</div>
+      <ul className="space-y-1 text-sm">
+        {HOME_SECTIONS.map((s) => (
+          <li key={s.key}>
+            <button onClick={() => setTab(s.key)} className={`w-full rounded-md px-3 py-2 text-left ${tab === s.key ? 'bg-brand-500 text-white' : 'hover:bg-gray-100 dark:hover:bg-white/10'}`}>
+              {s.label}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-3 px-2 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400">Blog</div>
+      <ul className="space-y-1 text-sm">
+        <li>
+          <button onClick={() => setTab('posts')} className={`w-full rounded-md px-3 py-2 text-left ${tab === 'posts' ? 'bg-brand-500 text-white' : 'hover:bg-gray-100 dark:hover:bg-white/10'}`}>Posts</button>
+        </li>
+      </ul>
+      <div className="mt-3 px-2 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400">Other</div>
+      <ul className="space-y-1 text-sm">
+        <li>
+          <button onClick={() => setTab('schema')} className={`w-full rounded-md px-3 py-2 text-left ${tab === 'schema' ? 'bg-brand-500 text-white' : 'hover:bg-gray-100 dark:hover:bg-white/10'}`}>Schema (JSON‑LD)</button>
+        </li>
+        <li>
+          <button onClick={() => setTab('settings')} className={`w-full rounded-md px-3 py-2 text-left ${tab === 'settings' ? 'bg-brand-500 text-white' : 'hover:bg-gray-100 dark:hover:bg-white/10'}`}>Settings</button>
+        </li>
+      </ul>
+    </aside>
+  );
+}
+
+function getSectionLabel(tab: SectionKey): string {
+  const home = HOME_SECTIONS.find((s) => s.key === tab)?.label;
+  if (home) return home;
+  if (tab === 'posts') return 'Posts';
+  if (tab === 'schema') return 'Schema (JSON‑LD)';
+  if (tab === 'settings') return 'Settings';
+  return String(tab);
 }
