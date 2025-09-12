@@ -7,7 +7,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { HeaderNav } from './HeaderNav';
 import { site } from '../content/site';
 
-export function Header() {
+export function Header({ logoUrl }: { logoUrl?: string }) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 4);
@@ -21,7 +21,7 @@ export function Header() {
       <Container className="flex h-16 items-center justify-between gap-6">
         <Link href="/" className="flex items-center" aria-label="Farbox home">
           <Image
-            src={site.logoUrl}
+            src={logoUrl || site.logoUrl}
             alt="Farbox logo"
             width={160}
             height={28}

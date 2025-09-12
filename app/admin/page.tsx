@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
+import { site as fallback } from '../../content/site';
 
 type SectionKey =
   | 'hero' | 'marquee' | 'services' | 'process' | 'beliefs' | 'clients' | 'clientLogos'
-  | 'caseStudies' | 'about' | 'book' | 'contact';
+  | 'caseStudies' | 'about' | 'book' | 'contact' | 'schema' | 'settings';
 
 const SECTIONS: { key: SectionKey; label: string }[] = [
   { key: 'hero', label: 'Hero' },
@@ -17,16 +18,876 @@ const SECTIONS: { key: SectionKey; label: string }[] = [
   { key: 'about', label: 'About' },
   { key: 'book', label: 'Book a Call' },
   { key: 'contact', label: 'Contact' },
+  { key: 'schema', label: 'Schema (JSON‑LD)' },
+  { key: 'settings', label: 'Settings' },
 ];
+
+// Small UI helpers
+function Label({ children }: { children: React.ReactNode }) {
+  return <label className="block text-xs font-medium text-gray-600 dark:text-gray-300">{children}</label>;
+}
+function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return <input {...props} className={(props.className || '') + ' w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-neutral-900'} />;
+}
+function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <textarea {...props} className={(props.className || '') + ' w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm leading-5 dark:border-gray-700 dark:bg-neutral-900'} />;
+}
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <Label>{label}</Label>
+      {children}
+    </div>
+  );
+}
+
+function IconButton({ children, onClick, title }: { children: React.ReactNode; onClick?: () => void; title?: string }) {
+  return (
+    <button type="button" title={title} onClick={onClick} className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-2 py-1 text-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+      {children}
+    </button>
+  );
+}
+
+// Lightweight toast system
+type Toast = { id: number; kind: 'success' | 'error' | 'info'; message: string };
+function Toasts({ items, onClose }: { items: Toast[]; onClose: (id: number) => void }) {
+  return (
+    <div className="pointer-events-none fixed top-3 right-3 z-[9999] flex flex-col gap-2">
+      {items.map((t) => (
+        <div
+          key={t.id}
+          className={
+            'pointer-events-auto flex items-center gap-2 rounded-md border px-3 py-2 text-sm shadow-md transition ' +
+            (t.kind === 'success'
+              ? 'border-green-200 bg-green-50 text-green-800 dark:border-green-900/50 dark:bg-green-950 dark:text-green-200'
+              : t.kind === 'error'
+              ? 'border-red-200 bg-red-50 text-red-800 dark:border-red-900/50 dark:bg-red-950 dark:text-red-200'
+              : 'border-gray-200 bg-white text-gray-900 dark:border-gray-800 dark:bg-neutral-900 dark:text-gray-100')
+          }
+          role="status"
+          aria-live="polite"
+        >
+          {t.kind === 'success' ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          ) : t.kind === 'error' ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6"/><path d="M9 9l6 6"/></svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          )}
+          <span>{t.message}</span>
+          <button onClick={() => onClose(t.id)} className="ml-1 rounded p-0.5 text-current/60 hover:text-current" aria-label="Close">×</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ImageUpload({ value, onChange, buttonLabel = 'Upload image' }: { value?: string; onChange: (url: string) => void; buttonLabel?: string }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setErr(null); setBusy(true);
+    const fd = new FormData();
+    fd.append('file', f);
+    try {
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      const j = await res.json();
+      if (!j.ok) throw new Error(j.error || 'Upload failed');
+      onChange(j.url);
+    } catch (e: any) {
+      setErr(e?.message || 'Upload failed');
+    } finally {
+      setBusy(false);
+      e.target.value = '';
+    }
+  };
+  return (
+    <div className="flex items-center gap-3">
+      <input type="file" accept="image/*" onChange={onPick} disabled={busy} className="text-xs" />
+      <span className="text-xs text-gray-500">{busy ? 'Uploading…' : buttonLabel}</span>
+      {value && <a href={value} target="_blank" rel="noreferrer" className="text-xs text-brand-500 underline">Preview</a>}
+      {err && <span className="text-xs text-red-600">{err}</span>}
+    </div>
+  );
+}
+
+// Section editors
+function HeroEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const v = value || {};
+  const up = (k: string, val: any) => onChange({ ...v, [k]: val });
+  const stats: any[] = Array.isArray(v.stats) ? v.stats : [];
+  return (
+    <div className="space-y-4">
+      <Field label="Title"><TextInput value={v.title || ''} onChange={(e) => up('title', e.target.value)} /></Field>
+      <Field label="Subhead"><TextInput value={v.subhead || ''} onChange={(e) => up('subhead', e.target.value)} /></Field>
+      <Field label="Body"><Textarea rows={4} value={v.body || ''} onChange={(e) => up('body', e.target.value)} /></Field>
+      <div>
+        <Field label="Hero image URL"><TextInput value={v.image || ''} onChange={(e) => up('image', e.target.value)} /></Field>
+        <div className="mt-1"><ImageUpload value={v.image} onChange={(url) => up('image', url)} buttonLabel="Upload hero image" /></div>
+      </div>
+      <div className="space-y-2">
+        <Label>Stats</Label>
+        {(stats).map((s, i) => (
+          <div key={i} className="grid grid-cols-2 gap-2">
+            <TextInput placeholder="Value" value={s.value || ''} onChange={(e) => {
+              const arr = [...stats]; arr[i] = { ...arr[i], value: e.target.value }; up('stats', arr);
+            }} />
+            <TextInput placeholder="Label" value={s.label || ''} onChange={(e) => {
+              const arr = [...stats]; arr[i] = { ...arr[i], label: e.target.value }; up('stats', arr);
+            }} />
+            <div className="col-span-2 flex justify-end"><IconButton title="Remove" onClick={() => { const arr = stats.filter((_, idx) => idx !== i); up('stats', arr); }}>Remove</IconButton></div>
+          </div>
+        ))}
+        <IconButton title="Add" onClick={() => up('stats', [...stats, { value: '', label: '' }])}>Add stat</IconButton>
+      </div>
+    </div>
+  );
+}
+
+function StringListEditor({ value, onChange, placeholder = 'Item' }: { value: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
+  const list = Array.isArray(value) ? value : [];
+  return (
+    <div className="space-y-2">
+      {list.map((s, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <TextInput value={s} placeholder={placeholder} onChange={(e) => { const arr = [...list]; arr[i] = e.target.value; onChange(arr); }} />
+          <IconButton title="Remove" onClick={() => onChange(list.filter((_, idx) => idx !== i))}>Remove</IconButton>
+        </div>
+      ))}
+      <IconButton title="Add" onClick={() => onChange([...list, ''])}>Add</IconButton>
+    </div>
+  );
+}
+
+function PillsEditor({ value, onChange, placeholder = 'Add item' }: { value: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
+  const list = Array.isArray(value) ? value : [];
+  const [draft, setDraft] = useState('');
+  const add = () => {
+    const t = draft.trim();
+    if (!t) return;
+    onChange([...list, t]);
+    setDraft('');
+  };
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      add();
+    }
+  };
+  const onBlur = () => add();
+  const removeAt = (idx: number) => onChange(list.filter((_, i) => i !== idx));
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
+        {list.map((s, i) => (
+          <span key={i} className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-1 text-xs dark:border-gray-700 dark:bg-neutral-900">
+            <span>{s}</span>
+            <button type="button" aria-label="Remove" onClick={() => removeAt(i)} className="rounded-full p-0.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">×</button>
+          </span>
+        ))}
+      </div>
+      <div className="flex items-center gap-2">
+        <TextInput placeholder={placeholder} value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={onKeyDown} onBlur={onBlur} />
+        <IconButton title="Add" onClick={add}>Add</IconButton>
+      </div>
+    </div>
+  );
+}
+
+function ReorderablePillsEditor({ value, onChange, placeholder = 'Add item' }: { value: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
+  const list = Array.isArray(value) ? value : [];
+  const [draft, setDraft] = useState('');
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
+
+  const add = () => {
+    const t = draft.trim();
+    if (!t) return;
+    onChange([...list, t]);
+    setDraft('');
+  };
+  const removeAt = (idx: number) => onChange(list.filter((_, i) => i !== idx));
+
+  const onDragStart = (idx: number, e: React.DragEvent) => {
+    setDragIdx(idx);
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', String(idx)); } catch {}
+  };
+  const onDragOver = (idx: number, e: React.DragEvent) => {
+    e.preventDefault();
+    if (overIdx !== idx) setOverIdx(idx);
+    e.dataTransfer.dropEffect = 'move';
+  };
+  const onDrop = (idx: number, e: React.DragEvent) => {
+    e.preventDefault();
+    const from = dragIdx ?? Number(e.dataTransfer.getData('text/plain'));
+    const to = idx;
+    setDragIdx(null); setOverIdx(null);
+    if (Number.isFinite(from) && Number.isFinite(to) && from !== to) {
+      const next = [...list];
+      const [moved] = next.splice(from as number, 1);
+      next.splice(to, 0, moved);
+      onChange(next);
+    }
+  };
+  const onDragEnd = () => { setDragIdx(null); setOverIdx(null); };
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); }
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
+        {list.map((s, i) => {
+          const active = overIdx === i;
+          return (
+            <span
+              key={i}
+              draggable
+              onDragStart={(e) => onDragStart(i, e)}
+              onDragOver={(e) => onDragOver(i, e)}
+              onDrop={(e) => onDrop(i, e)}
+              onDragEnd={onDragEnd}
+              className={
+                'inline-flex cursor-move items-center gap-2 rounded-full border px-3 py-1 text-xs transition ' +
+                (active ? 'border-brand-500 bg-brand-500/10' : 'border-gray-300 bg-white dark:border-gray-700 dark:bg-neutral-900')
+              }
+              title="Drag to reorder"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><path d="M8 6h.01M12 6h.01M16 6h.01M8 12h.01M12 12h.01M16 12h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>
+              <span>{s}</span>
+              <button type="button" aria-label="Remove" onClick={() => removeAt(i)} className="rounded-full p-0.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">×</button>
+            </span>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-2">
+        <TextInput placeholder={placeholder} value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={onKeyDown} />
+        <IconButton title="Add" onClick={add}>Add</IconButton>
+      </div>
+    </div>
+  );
+}
+
+function ServicesEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const v = value || {};
+  const up = (k: string, val: any) => onChange({ ...v, [k]: val });
+  const items: any[] = Array.isArray(v.items) ? v.items : [];
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
+  const onDragStart = (idx: number, e: React.DragEvent) => {
+    setDragIdx(idx);
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', String(idx)); } catch {}
+  };
+  const onDragOver = (idx: number, e: React.DragEvent) => {
+    e.preventDefault();
+    if (overIdx !== idx) setOverIdx(idx);
+    e.dataTransfer.dropEffect = 'move';
+  };
+  const onDrop = (idx: number, e: React.DragEvent) => {
+    e.preventDefault();
+    const from = dragIdx ?? Number(e.dataTransfer.getData('text/plain'));
+    const to = idx;
+    setDragIdx(null); setOverIdx(null);
+    if (Number.isFinite(from) && Number.isFinite(to) && from !== to) {
+      const next = [...items];
+      const [moved] = next.splice(from as number, 1);
+      next.splice(to, 0, moved);
+      up('items', next);
+    }
+  };
+  const onDragEnd = () => { setDragIdx(null); setOverIdx(null); };
+  return (
+    <div className="space-y-4">
+      <Field label="Title"><TextInput value={v.title || ''} onChange={(e) => up('title', e.target.value)} /></Field>
+      <Field label="Subtitle"><Textarea rows={3} value={v.subtitle || ''} onChange={(e) => up('subtitle', e.target.value)} /></Field>
+      <Field label="Note"><Textarea rows={2} value={v.note || ''} onChange={(e) => up('note', e.target.value)} /></Field>
+      <div className="space-y-2">
+        <Label>Items</Label>
+        {items.map((it, i) => (
+          <div
+            key={i}
+            draggable
+            onDragStart={(e) => onDragStart(i, e)}
+            onDragOver={(e) => onDragOver(i, e)}
+            onDrop={(e) => onDrop(i, e)}
+            onDragEnd={onDragEnd}
+            className={(overIdx === i ? 'border-brand-500 bg-brand-500/5 ' : '') + 'grid grid-cols-2 gap-2 rounded-md border border-gray-200 p-2 dark:border-gray-800'}
+          >
+            <div className="col-span-2 -mb-1 flex items-center gap-2 text-xs text-gray-500">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><path d="M8 6h.01M12 6h.01M16 6h.01M8 12h.01M12 12h.01M16 12h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>
+              Drag to reorder
+            </div>
+            <TextInput placeholder="Title" value={it.title || ''} onChange={(e) => { const arr = [...items]; arr[i] = { ...arr[i], title: e.target.value }; up('items', arr); }} />
+            <TextInput placeholder="Icon (optional)" value={it.icon || ''} onChange={(e) => { const arr = [...items]; arr[i] = { ...arr[i], icon: e.target.value }; up('items', arr); }} />
+            <div className="col-span-2"><Textarea placeholder="Description" rows={2} value={it.description || ''} onChange={(e) => { const arr = [...items]; arr[i] = { ...arr[i], description: e.target.value }; up('items', arr); }} /></div>
+            <div className="col-span-2 flex justify-end"><IconButton title="Remove" onClick={() => up('items', items.filter((_, idx) => idx !== i))}>Remove</IconButton></div>
+          </div>
+        ))}
+        <IconButton title="Add" onClick={() => up('items', [...items, { title: '', description: '' }])}>Add item</IconButton>
+      </div>
+    </div>
+  );
+}
+
+function ProcessEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const v = value || {};
+  const up = (k: string, val: any) => onChange({ ...v, [k]: val });
+  const steps: any[] = Array.isArray(v.steps) ? v.steps : [];
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
+  const onDragStart = (idx: number, e: React.DragEvent) => {
+    setDragIdx(idx);
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', String(idx)); } catch {}
+  };
+  const onDragOver = (idx: number, e: React.DragEvent) => {
+    e.preventDefault();
+    if (overIdx !== idx) setOverIdx(idx);
+    e.dataTransfer.dropEffect = 'move';
+  };
+  const onDrop = (idx: number, e: React.DragEvent) => {
+    e.preventDefault();
+    const from = dragIdx ?? Number(e.dataTransfer.getData('text/plain'));
+    const to = idx;
+    setDragIdx(null); setOverIdx(null);
+    if (Number.isFinite(from) && Number.isFinite(to) && from !== to) {
+      const next = [...steps];
+      const [moved] = next.splice(from as number, 1);
+      next.splice(to, 0, moved);
+      up('steps', next);
+    }
+  };
+  const onDragEnd = () => { setDragIdx(null); setOverIdx(null); };
+  return (
+    <div className="space-y-4">
+      <Field label="Title"><TextInput value={v.title || ''} onChange={(e) => up('title', e.target.value)} /></Field>
+      <Field label="Intro"><Textarea rows={3} value={v.intro || ''} onChange={(e) => up('intro', e.target.value)} /></Field>
+      <div className="space-y-2">
+        <Label>Steps</Label>
+        {steps.map((st, i) => (
+          <div
+            key={i}
+            draggable
+            onDragStart={(e) => onDragStart(i, e)}
+            onDragOver={(e) => onDragOver(i, e)}
+            onDrop={(e) => onDrop(i, e)}
+            onDragEnd={onDragEnd}
+            className={(overIdx === i ? 'border-brand-500 bg-brand-500/5 ' : '') + 'grid grid-cols-2 gap-2 rounded-md border border-gray-200 p-2 dark:border-gray-800'}
+          >
+            <div className="col-span-2 -mb-1 flex items-center gap-2 text-xs text-gray-500">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><path d="M8 6h.01M12 6h.01M16 6h.01M8 12h.01M12 12h.01M16 12h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>
+              Drag to reorder
+            </div>
+            <TextInput placeholder="Title" value={st.title || ''} onChange={(e) => { const arr = [...steps]; arr[i] = { ...arr[i], title: e.target.value }; up('steps', arr); }} />
+            <div className="col-span-2"><Textarea placeholder="Description" rows={2} value={st.description || ''} onChange={(e) => { const arr = [...steps]; arr[i] = { ...arr[i], description: e.target.value }; up('steps', arr); }} /></div>
+            <div className="col-span-2 flex justify-end"><IconButton title="Remove" onClick={() => up('steps', steps.filter((_, idx) => idx !== i))}>Remove</IconButton></div>
+          </div>
+        ))}
+        <IconButton title="Add" onClick={() => up('steps', [...steps, { title: '', description: '' }])}>Add step</IconButton>
+      </div>
+    </div>
+  );
+}
+
+function BeliefsEditor({ value, onChange }: { value: any[]; onChange: (v: any[]) => void }) {
+  const list = Array.isArray(value) ? value : [];
+  return (
+    <div className="space-y-2">
+      {list.map((b, i) => (
+        <div key={i} className="grid grid-cols-2 gap-2">
+          <TextInput placeholder="Title" value={b.title || ''} onChange={(e) => { const arr = [...list]; arr[i] = { ...arr[i], title: e.target.value }; onChange(arr); }} />
+          <div className="col-span-2"><Textarea placeholder="Quote" rows={2} value={b.quote || ''} onChange={(e) => { const arr = [...list]; arr[i] = { ...arr[i], quote: e.target.value }; onChange(arr); }} /></div>
+          <div className="col-span-2 flex justify-end"><IconButton title="Remove" onClick={() => onChange(list.filter((_, idx) => idx !== i))}>Remove</IconButton></div>
+        </div>
+      ))}
+      <IconButton title="Add" onClick={() => onChange([...(list || []), { title: '', quote: '' }])}>Add belief</IconButton>
+    </div>
+  );
+}
+
+function ClientLogosEditor({ value, onChange }: { value: any[]; onChange: (v: any[]) => void }) {
+  const list = Array.isArray(value) ? value : [];
+  return (
+    <div className="space-y-3">
+      {list.map((logo, i) => (
+        <div key={i} className="grid grid-cols-3 items-start gap-2">
+          <div className="col-span-2">
+            <Field label="Image URL"><TextInput value={logo.src || ''} onChange={(e) => { const arr = [...list]; arr[i] = { ...arr[i], src: e.target.value }; onChange(arr); }} /></Field>
+            <div className="mt-1"><ImageUpload value={logo.src} onChange={(url) => { const arr = [...list]; arr[i] = { ...arr[i], src: url }; onChange(arr); }} /></div>
+          </div>
+          <Field label="Alt text"><TextInput value={logo.alt || ''} onChange={(e) => { const arr = [...list]; arr[i] = { ...arr[i], alt: e.target.value }; onChange(arr); }} /></Field>
+          <div className="col-span-3 flex justify-end"><IconButton title="Remove" onClick={() => onChange(list.filter((_, idx) => idx !== i))}>Remove</IconButton></div>
+        </div>
+      ))}
+      <IconButton title="Add" onClick={() => onChange([...(list || []), { src: '', alt: '' }])}>Add logo</IconButton>
+    </div>
+  );
+}
+
+function CaseStudiesEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const v = value || {};
+  const up = (k: string, val: any) => onChange({ ...v, [k]: val });
+  const items: any[] = Array.isArray(v.items) ? v.items : [];
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
+  const onDragStart = (idx: number, e: React.DragEvent) => {
+    setDragIdx(idx);
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', String(idx)); } catch {}
+  };
+  const onDragOver = (idx: number, e: React.DragEvent) => {
+    e.preventDefault();
+    if (overIdx !== idx) setOverIdx(idx);
+    e.dataTransfer.dropEffect = 'move';
+  };
+  const onDrop = (idx: number, e: React.DragEvent) => {
+    e.preventDefault();
+    const from = dragIdx ?? Number(e.dataTransfer.getData('text/plain'));
+    const to = idx;
+    setDragIdx(null); setOverIdx(null);
+    if (Number.isFinite(from) && Number.isFinite(to) && from !== to) {
+      const next = [...items];
+      const [moved] = next.splice(from as number, 1);
+      next.splice(to, 0, moved);
+      up('items', next);
+    }
+  };
+  const onDragEnd = () => { setDragIdx(null); setOverIdx(null); };
+  return (
+    <div className="space-y-4">
+      <Field label="Title"><TextInput value={v.title || ''} onChange={(e) => up('title', e.target.value)} /></Field>
+      <Field label="Intro"><Textarea rows={3} value={v.intro || ''} onChange={(e) => up('intro', e.target.value)} /></Field>
+      <div className="space-y-2">
+        <Label>Items</Label>
+        {items.map((it, i) => (
+          <div
+            key={i}
+            draggable
+            onDragStart={(e) => onDragStart(i, e)}
+            onDragOver={(e) => onDragOver(i, e)}
+            onDrop={(e) => onDrop(i, e)}
+            onDragEnd={onDragEnd}
+            className={(overIdx === i ? 'border-brand-500 bg-brand-500/5 ' : '') + 'space-y-2 rounded-md border border-gray-200 p-3 dark:border-gray-800'}
+          >
+            <div className="-mb-1 flex items-center gap-2 text-xs text-gray-500">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><path d="M8 6h.01M12 6h.01M16 6h.01M8 12h.01M12 12h.01M16 12h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>
+              Drag to reorder
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <TextInput placeholder="Slug" value={it.slug || ''} onChange={(e) => { const arr = [...items]; arr[i] = { ...arr[i], slug: e.target.value }; up('items', arr); }} />
+              <TextInput placeholder="Title" value={it.title || ''} onChange={(e) => { const arr = [...items]; arr[i] = { ...arr[i], title: e.target.value }; up('items', arr); }} />
+              <TextInput placeholder="Category" value={it.category || ''} onChange={(e) => { const arr = [...items]; arr[i] = { ...arr[i], category: e.target.value }; up('items', arr); }} />
+              <TextInput placeholder="Link" value={it.link || ''} onChange={(e) => { const arr = [...items]; arr[i] = { ...arr[i], link: e.target.value }; up('items', arr); }} />
+              <div className="col-span-2"><Textarea placeholder="Summary" rows={2} value={it.summary || ''} onChange={(e) => { const arr = [...items]; arr[i] = { ...arr[i], summary: e.target.value }; up('items', arr); }} /></div>
+              <div className="col-span-2">
+                <Field label="Image URL"><TextInput value={it.image || ''} onChange={(e) => { const arr = [...items]; arr[i] = { ...arr[i], image: e.target.value }; up('items', arr); }} /></Field>
+                <div className="mt-1"><ImageUpload value={it.image} onChange={(url) => { const arr = [...items]; arr[i] = { ...arr[i], image: url }; up('items', arr); }} /></div>
+              </div>
+              <div className="col-span-2">
+                <Label>Results</Label>
+                <PillsEditor value={Array.isArray(it.results) ? it.results : []} onChange={(vals) => { const arr = [...items]; arr[i] = { ...arr[i], results: vals }; up('items', arr); }} placeholder="Add result" />
+              </div>
+            </div>
+            <div className="flex justify-end"><IconButton title="Remove" onClick={() => up('items', items.filter((_, idx) => idx !== i))}>Remove</IconButton></div>
+          </div>
+        ))}
+        <IconButton title="Add" onClick={() => up('items', [...items, { slug: '', title: '', category: '', summary: '', image: '', results: [], link: '' }])}>Add item</IconButton>
+      </div>
+    </div>
+  );
+}
+
+function AboutEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const v = value || {};
+  const up = (k: string, val: any) => onChange({ ...v, [k]: val });
+  const highlights: string[] = Array.isArray(v.highlights) ? v.highlights : [];
+  const clients: string[] = Array.isArray(v.clients) ? v.clients : [];
+  return (
+    <div className="space-y-4">
+      <Field label="Title"><TextInput value={v.title || ''} onChange={(e) => up('title', e.target.value)} /></Field>
+      <Field label="Body"><Textarea rows={3} value={v.body || ''} onChange={(e) => up('body', e.target.value)} /></Field>
+      <div>
+        <Label>Highlights</Label>
+        <StringListEditor value={highlights} onChange={(arr) => up('highlights', arr)} placeholder="Highlight" />
+      </div>
+      <div>
+        <Label>Clients</Label>
+        <StringListEditor value={clients} onChange={(arr) => up('clients', arr)} placeholder="Client" />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="CEO Name"><TextInput value={v.ceoName || ''} onChange={(e) => up('ceoName', e.target.value)} /></Field>
+        <Field label="CEO Title"><TextInput value={v.ceoTitle || ''} onChange={(e) => up('ceoTitle', e.target.value)} /></Field>
+        <div className="col-span-2"><Field label="CEO Note"><Textarea rows={3} value={v.ceoNote || ''} onChange={(e) => up('ceoNote', e.target.value)} /></Field></div>
+        <div className="col-span-2">
+          <Field label="Photo URL"><TextInput value={v.photo || ''} onChange={(e) => up('photo', e.target.value)} /></Field>
+          <div className="mt-1"><ImageUpload value={v.photo} onChange={(url) => up('photo', url)} /></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ContactEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const v = value || {};
+  const up = (k: string, val: any) => onChange({ ...v, [k]: val });
+  const socials: any[] = Array.isArray(v.socials) ? v.socials : [];
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="Email"><TextInput value={v.email || ''} onChange={(e) => up('email', e.target.value)} /></Field>
+        <Field label="Phone"><TextInput value={v.phone || ''} onChange={(e) => up('phone', e.target.value)} /></Field>
+      </div>
+      <Field label="Location"><TextInput value={v.location || ''} onChange={(e) => up('location', e.target.value)} /></Field>
+      <div className="space-y-2">
+        <Label>Socials</Label>
+        {socials.map((s, i) => (
+          <div key={i} className="grid grid-cols-2 gap-2">
+            <TextInput placeholder="Label" value={s.label || ''} onChange={(e) => { const arr = [...socials]; arr[i] = { ...arr[i], label: e.target.value }; up('socials', arr); }} />
+            <TextInput placeholder="URL" value={s.href || ''} onChange={(e) => { const arr = [...socials]; arr[i] = { ...arr[i], href: e.target.value }; up('socials', arr); }} />
+            <div className="col-span-2 flex justify-end"><IconButton title="Remove" onClick={() => up('socials', socials.filter((_, idx) => idx !== i))}>Remove</IconButton></div>
+          </div>
+        ))}
+        <IconButton title="Add" onClick={() => up('socials', [...socials, { label: '', href: '' }])}>Add social</IconButton>
+      </div>
+    </div>
+  );
+}
+
+function SettingsEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const v = value || {};
+  const up = (k: string, val: any) => onChange({ ...v, [k]: val });
+  return (
+    <div className="space-y-3">
+      <Field label="Site logo URL"><TextInput value={v.logoUrl || ''} onChange={(e) => up('logoUrl', e.target.value)} /></Field>
+      <div className="mt-1"><ImageUpload value={v.logoUrl} onChange={(url) => up('logoUrl', url)} buttonLabel="Upload logo" /></div>
+      <div className="text-xs text-gray-600 dark:text-gray-400">This controls the logo in the header. Save and refresh the site to see it update.</div>
+      <div className="pt-2">
+        <Field label="Favicon URL (.ico, .png)"><TextInput value={v.faviconUrl || ''} onChange={(e) => up('faviconUrl', e.target.value)} /></Field>
+        <div className="mt-1"><ImageUpload value={v.faviconUrl} onChange={(url) => up('faviconUrl', url)} buttonLabel="Upload favicon" /></div>
+        <div className="text-xs text-gray-600 dark:text-gray-400">Recommended: 32x32 or 48x48 PNG, or a .ico file. This updates the browser tab icon.</div>
+      </div>
+      <hr className="my-4 border-gray-200 dark:border-gray-800" />
+      <div className="space-y-3">
+        <div className="text-sm font-medium">SEO Meta</div>
+        <Field label="Site Name"><TextInput value={v.siteName || ''} onChange={(e) => up('siteName', e.target.value)} /></Field>
+        <Field label="SEO Title"><TextInput value={v.seoTitle || ''} onChange={(e) => up('seoTitle', e.target.value)} /></Field>
+        <Field label="SEO Description"><Textarea rows={3} value={v.seoDescription || ''} onChange={(e) => up('seoDescription', e.target.value)} /></Field>
+        <Field label="Canonical URL"><TextInput value={v.canonicalUrl || ''} onChange={(e) => up('canonicalUrl', e.target.value)} placeholder="https://yourdomain.com" /></Field>
+      </div>
+      <div className="space-y-3">
+        <div className="text-sm font-medium">Open Graph</div>
+        <Field label="OG Title"><TextInput value={v.ogTitle || ''} onChange={(e) => up('ogTitle', e.target.value)} /></Field>
+        <Field label="OG Description"><Textarea rows={3} value={v.ogDescription || ''} onChange={(e) => up('ogDescription', e.target.value)} /></Field>
+        <Field label="OG Image URL"><TextInput value={v.ogImageUrl || ''} onChange={(e) => up('ogImageUrl', e.target.value)} /></Field>
+        <div className="mt-1"><ImageUpload value={v.ogImageUrl} onChange={(url) => up('ogImageUrl', url)} buttonLabel="Upload OG image" /></div>
+      </div>
+      <div className="space-y-3">
+        <div className="text-sm font-medium">Twitter</div>
+        <Field label="Card Type"><TextInput value={v.twitterCard || 'summary_large_image'} onChange={(e) => up('twitterCard', e.target.value)} placeholder="summary_large_image" /></Field>
+        <Field label="@Site"><TextInput value={v.twitterSite || ''} onChange={(e) => up('twitterSite', e.target.value)} placeholder="@yourhandle" /></Field>
+      </div>
+    </div>
+  );
+}
+
+function SchemaEditor({ value, onChange, contextData, onToast }: { value: any; onChange: (v: any) => void; contextData: any; onToast?: (msg: string, kind?: 'success' | 'error' | 'info') => void }) {
+  const [text, setText] = useState<string>('');
+  const [err, setErr] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(true);
+  // Form state
+  type ServiceItem = { name: string; description?: string };
+  type FaqItem = { q: string; a: string };
+  const [businessName, setBusinessName] = useState('');
+  const [legalName, setLegalName] = useState('');
+  const [url, setUrl] = useState('');
+  const [logo, setLogo] = useState('');
+  const [image, setImage] = useState('');
+  const [telephone, setTelephone] = useState('');
+  const [priceRange, setPriceRange] = useState('$$');
+  const [addressLocality, setAddressLocality] = useState('');
+  const [addressRegion, setAddressRegion] = useState('');
+  const [addressCountry, setAddressCountry] = useState('');
+  const [openingDays, setOpeningDays] = useState<string[]>(['Monday','Tuesday','Wednesday','Thursday','Friday']);
+  const [opens, setOpens] = useState('09:00');
+  const [closes, setCloses] = useState('17:00');
+  const [sameAs, setSameAs] = useState<string[]>([]);
+  const [servicesList, setServicesList] = useState<ServiceItem[]>([]);
+  const [faqs, setFaqs] = useState<FaqItem[]>([]);
+  useEffect(() => {
+    const pretty = JSON.stringify(value ?? {}, null, 2);
+    setText(pretty);
+    setErr(null);
+    // Seed form from context and existing value
+    try {
+      const origin = (typeof window !== 'undefined' ? window.location.origin : '') || 'https://example.com';
+      setUrl(origin);
+      const contact = contextData?.contact || {};
+      const services = contextData?.services || {};
+      setTelephone(contact.phone || '');
+      setAddressCountry(contact.location || '');
+      const socials = Array.isArray(contact.socials) ? contact.socials : [];
+      const same = socials.map((s: any) => s?.href).filter(Boolean);
+      setSameAs(same);
+      const serviceItems = Array.isArray(services.items) ? services.items : [];
+      setServicesList(serviceItems.map((it: any) => ({ name: it?.title || '', description: it?.description || '' })));
+      setBusinessName('Farbox Creative');
+      setLegalName('Farbox Creative');
+      const logoPath = (fallback.logoUrl || '/logo.png');
+      const fullLogo = logoPath.startsWith('http') ? logoPath : origin + logoPath;
+      setLogo(fullLogo);
+      setImage(fullLogo);
+      // If existing JSON-LD present, try to hydrate more precisely
+      const obj = value || {};
+      const graph = Array.isArray(obj['@graph']) ? obj['@graph'] : [];
+      const lb = graph.find((n: any) => n?.['@type'] === 'LocalBusiness');
+      if (lb) {
+        setBusinessName(lb.name || businessName);
+        setLegalName(lb.legalName || legalName);
+        setUrl(lb.url || url);
+        setLogo(lb.logo || logo);
+        setImage(lb.image || image);
+        setTelephone(lb.telephone || telephone);
+        setPriceRange(lb.priceRange || priceRange);
+        setAddressLocality(lb.address?.addressLocality || addressLocality);
+        setAddressRegion(lb.address?.addressRegion || addressRegion);
+        setAddressCountry(lb.address?.addressCountry || addressCountry);
+        if (Array.isArray(lb.openingHoursSpecification) && lb.openingHoursSpecification[0]) {
+          setOpeningDays(lb.openingHoursSpecification[0].dayOfWeek || openingDays);
+          setOpens(lb.openingHoursSpecification[0].opens || opens);
+          setCloses(lb.openingHoursSpecification[0].closes || closes);
+        }
+        if (Array.isArray(lb.sameAs)) setSameAs(lb.sameAs);
+      }
+      const serviceNodes = graph.filter((n: any) => n?.['@type'] === 'Service');
+      if (serviceNodes.length) setServicesList(serviceNodes.map((n: any) => ({ name: n.name || '', description: n.description || '' })));
+      const faq = graph.find((n: any) => n?.['@type'] === 'FAQPage');
+      if (faq && Array.isArray(faq.mainEntity)) {
+        setFaqs(faq.mainEntity.map((q: any) => ({ q: q?.name || '', a: q?.acceptedAnswer?.text || '' })));
+      }
+    } catch {}
+  }, [value]);
+
+  const apply = () => {
+    try {
+      const parsed = text.trim() ? JSON.parse(text) : {};
+      onChange(parsed);
+      setText(JSON.stringify(parsed, null, 2));
+      setErr(null);
+      onToast?.('Applied schema changes', 'success');
+    } catch (e: any) {
+      setErr('Invalid JSON');
+      onToast?.('Invalid JSON', 'error');
+    }
+  };
+
+  const prettify = () => {
+    try { const p = JSON.parse(text); setText(JSON.stringify(p, null, 2)); setErr(null); } catch { setErr('Invalid JSON'); }
+  };
+
+  // Helper to build JSON-LD from current form state
+  const buildJsonFromForm = (opts?: Partial<{ logo: string; image: string }>) => {
+    const agencyId = (url || '').replace(/\/$/, '') + '/#agency';
+    const jsonld: any = {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'LocalBusiness',
+          '@id': agencyId,
+          name: businessName || undefined,
+          legalName: legalName || undefined,
+          description: undefined,
+          url: url || undefined,
+          logo: (opts?.logo ?? logo) || undefined,
+          image: (opts?.image ?? image) || undefined,
+          telephone: telephone || undefined,
+          priceRange: priceRange || undefined,
+          address: (addressLocality || addressRegion || addressCountry) ? {
+            '@type': 'PostalAddress',
+            addressLocality: addressLocality || undefined,
+            addressRegion: addressRegion || undefined,
+            addressCountry: addressCountry || undefined,
+          } : undefined,
+          openingHoursSpecification: openingDays.length ? [ { '@type': 'OpeningHoursSpecification', dayOfWeek: openingDays, opens: opens || undefined, closes: closes || undefined } ] : undefined,
+          contactPoint: telephone ? [ { '@type': 'ContactPoint', telephone: telephone, contactType: 'customer service' } ] : undefined,
+          sameAs: sameAs.length ? sameAs : undefined,
+        },
+        ...servicesList.filter((s) => s.name).map((s) => ({ '@type': 'Service', name: s.name, description: s.description || undefined, provider: { '@id': agencyId } })),
+      ],
+    };
+    if (faqs.length) {
+      jsonld['@graph'].push({ '@type': 'FAQPage', mainEntity: faqs.filter(f => f.q && f.a).map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) });
+    }
+    return jsonld;
+  };
+
+  const generateFromContent = () => {
+    try {
+      const origin = (typeof window !== 'undefined' ? window.location.origin : '') || 'https://example.com';
+      const contact = contextData?.contact || {};
+      const services = contextData?.services || {};
+      const socials = Array.isArray(contact.socials) ? contact.socials : [];
+      const serviceItems = Array.isArray(services.items) ? services.items : [];
+      const logoPath = (fallback.logoUrl || '/logo.png').startsWith('http') ? fallback.logoUrl : origin + (fallback.logoUrl || '');
+      const phone = contact.phone || '';
+      const sameAs = socials.map((s: any) => s?.href).filter(Boolean);
+      const agencyId = origin + '/#agency';
+      const jsonld = {
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'LocalBusiness',
+            '@id': agencyId,
+            name: 'Farbox Creative',
+            description: 'Web design and development studio',
+            url: origin,
+            logo: logoPath,
+            image: logoPath,
+            telephone: phone,
+            priceRange: '$$',
+            address: {
+              '@type': 'PostalAddress',
+              addressCountry: contact.location || 'AU',
+            },
+            openingHoursSpecification: [
+              { '@type': 'OpeningHoursSpecification', dayOfWeek: ['Monday','Tuesday','Wednesday','Thursday','Friday'], opens: '09:00', closes: '17:00' },
+            ],
+            contactPoint: phone ? [ { '@type': 'ContactPoint', telephone: phone, contactType: 'customer service' } ] : undefined,
+            sameAs: sameAs.length ? sameAs : undefined,
+          },
+          ...serviceItems.map((it: any) => ({
+            '@type': 'Service',
+            name: it?.title || 'Service',
+            description: it?.description || undefined,
+            provider: { '@id': agencyId },
+          })),
+        ],
+      } as any;
+      setText(JSON.stringify(jsonld, null, 2));
+      setErr(null);
+    } catch (e: any) {
+      setErr('Failed to generate');
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <IconButton title="Generate from content" onClick={generateFromContent}>Generate from content</IconButton>
+        <IconButton title="Prettify" onClick={prettify}>Prettify</IconButton>
+        <IconButton title="Apply" onClick={apply}>Apply</IconButton>
+        {err && <span className="text-xs text-red-600">{err}</span>}
+      </div>
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-medium">Form builder</div>
+        <button type="button" className="text-xs underline" onClick={() => setShowForm((s) => !s)}>{showForm ? 'Hide' : 'Show'}</button>
+      </div>
+      {showForm && (
+        <div className="space-y-4 rounded-lg border border-gray-200 p-3 dark:border-gray-800">
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Business name"><TextInput value={businessName} onChange={(e) => setBusinessName(e.target.value)} /></Field>
+            <Field label="Legal name"><TextInput value={legalName} onChange={(e) => setLegalName(e.target.value)} /></Field>
+            <Field label="Website URL"><TextInput value={url} onChange={(e) => setUrl(e.target.value)} /></Field>
+            <Field label="Telephone"><TextInput value={telephone} onChange={(e) => setTelephone(e.target.value)} /></Field>
+            <Field label="Price range"><TextInput value={priceRange} onChange={(e) => setPriceRange(e.target.value)} /></Field>
+            <div className="col-span-2 grid grid-cols-2 gap-2">
+              <Field label="Logo URL"><TextInput value={logo} onChange={(e) => setLogo(e.target.value)} /></Field>
+              <div className="pt-5"><ImageUpload value={logo} onChange={(url) => { setLogo(url); const j = buildJsonFromForm({ logo: url }); setText(JSON.stringify(j, null, 2)); onChange(j); onToast?.('Applied logo to schema', 'success'); }} buttonLabel="Upload logo" /></div>
+              <Field label="Image URL"><TextInput value={image} onChange={(e) => setImage(e.target.value)} /></Field>
+              <div className="pt-5"><ImageUpload value={image} onChange={(url) => { setImage(url); const j = buildJsonFromForm({ image: url }); setText(JSON.stringify(j, null, 2)); onChange(j); onToast?.('Applied image to schema', 'success'); }} buttonLabel="Upload image" /></div>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <Field label="Address locality"><TextInput value={addressLocality} onChange={(e) => setAddressLocality(e.target.value)} /></Field>
+            <Field label="Address region"><TextInput value={addressRegion} onChange={(e) => setAddressRegion(e.target.value)} /></Field>
+            <Field label="Address country"><TextInput value={addressCountry} onChange={(e) => setAddressCountry(e.target.value)} /></Field>
+          </div>
+          <div className="space-y-2">
+            <Label>Opening hours</Label>
+            <div className="flex flex-wrap gap-2 text-xs">
+              {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map((d) => {
+                const active = openingDays.includes(d);
+                return (
+                  <button key={d} type="button" onClick={() => setOpeningDays((prev) => active ? prev.filter((x) => x !== d) : [...prev, d])} className={(active ? 'bg-brand-500 text-white' : 'bg-white text-gray-700 dark:bg-neutral-900 dark:text-gray-200') + ' rounded-md border border-gray-300 px-2 py-1 dark:border-gray-700'}>{d.slice(0,3)}</button>
+                );
+              })}
+              <div className="ml-auto flex items-center gap-2">
+                <span>Opens</span>
+                <input type="time" value={opens} onChange={(e) => setOpens(e.target.value)} className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-700 dark:bg-neutral-900" />
+                <span>Closes</span>
+                <input type="time" value={closes} onChange={(e) => setCloses(e.target.value)} className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-700 dark:bg-neutral-900" />
+              </div>
+            </div>
+          </div>
+          <div>
+            <Label>Social profiles (sameAs)</Label>
+            <ReorderablePillsEditor value={sameAs} onChange={setSameAs} placeholder="https://..." />
+          </div>
+          <div className="space-y-2">
+            <Label>Services</Label>
+            <div className="space-y-3">
+              {servicesList.map((s, i) => (
+                <div key={i} className="grid grid-cols-2 gap-2 rounded-md border border-gray-200 p-2 dark:border-gray-800">
+                  <TextInput placeholder="Name" value={s.name} onChange={(e) => { const arr = [...servicesList]; arr[i] = { ...arr[i], name: e.target.value }; setServicesList(arr); }} />
+                  <div className="col-span-2"><Textarea placeholder="Description" rows={2} value={s.description || ''} onChange={(e) => { const arr = [...servicesList]; arr[i] = { ...arr[i], description: e.target.value }; setServicesList(arr); }} /></div>
+                  <div className="col-span-2 flex justify-end"><IconButton title="Remove" onClick={() => setServicesList(servicesList.filter((_, idx) => idx !== i))}>Remove</IconButton></div>
+                </div>
+              ))}
+              <IconButton title="Add" onClick={() => setServicesList([...servicesList, { name: '', description: '' }])}>Add service</IconButton>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>FAQ</Label>
+            <div className="space-y-3">
+              {faqs.map((f, i) => (
+                <div key={i} className="grid grid-cols-2 gap-2 rounded-md border border-gray-200 p-2 dark:border-gray-800">
+                  <TextInput placeholder="Question" value={f.q} onChange={(e) => { const arr = [...faqs]; arr[i] = { ...arr[i], q: e.target.value }; setFaqs(arr); }} />
+                  <div className="col-span-2"><Textarea placeholder="Answer" rows={2} value={f.a} onChange={(e) => { const arr = [...faqs]; arr[i] = { ...arr[i], a: e.target.value }; setFaqs(arr); }} /></div>
+                  <div className="col-span-2 flex justify-end"><IconButton title="Remove" onClick={() => setFaqs(faqs.filter((_, idx) => idx !== i))}>Remove</IconButton></div>
+                </div>
+              ))}
+              <IconButton title="Add" onClick={() => setFaqs([...faqs, { q: '', a: '' }])}>Add Q&A</IconButton>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <IconButton title="Build JSON-LD" onClick={() => {
+              const jsonld = buildJsonFromForm();
+              setText(JSON.stringify(jsonld, null, 2));
+              onChange(jsonld);
+              onToast?.('Built JSON-LD from form', 'success');
+            }}>Build JSON‑LD</IconButton>
+          </div>
+        </div>
+      )}
+      <Textarea rows={18} value={text} onChange={(e) => setText(e.target.value)} />
+      <div className="rounded-md border border-gray-200 p-3 text-xs text-gray-600 dark:border-gray-800 dark:text-gray-300">
+        Paste valid JSON-LD here. Click Generate to scaffold from current content, then Apply to stage changes before saving the section.
+      </div>
+    </div>
+  );
+}
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [data, setData] = useState<any>(null);
   const [tab, setTab] = useState<SectionKey>('hero');
-  const [json, setJson] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [raw, setRaw] = useState(false);
+  const [rawText, setRawText] = useState('');
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const pushToast = (message: string, kind: 'success' | 'error' | 'info' = 'info') => {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    setToasts((prev) => [...prev, { id, kind, message }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 2800);
+  };
+  const closeToast = (id: number) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
   useEffect(() => {
     (async () => {
@@ -39,33 +900,40 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!data) return;
-    const section = (data as any)[tab];
-    setJson(JSON.stringify(section ?? {}, null, 2));
+    const section = (data as any)[tab] ?? {};
+    setRawText(JSON.stringify(section, null, 2));
     setError(null);
     setMessage(null);
   }, [tab, data]);
 
   const onSave = async () => {
     setError(null); setMessage(null);
-    let parsed: any;
-    try { parsed = JSON.parse(json); } catch (e: any) { setError('Invalid JSON'); return; }
+    let payload: any = (data || {})[tab] ?? {};
+    if (raw) {
+      try { payload = JSON.parse(rawText); } catch { setError('Invalid JSON'); return; }
+    }
     setSaving(true);
-    const res = await fetch('/api/admin/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ section: tab, data: parsed }) });
+    const res = await fetch('/api/admin/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ section: tab, data: payload }) });
     const j = await res.json();
     setSaving(false);
-    if (!j.ok) { setError(j.error || 'Failed to save (filesystem may be read-only on host).'); return; }
+    if (!j.ok) { setError(j.error || 'Failed to save.'); pushToast(j.error || 'Failed to save', 'error'); return; }
     setMessage('Saved!');
-    setData((prev: any) => ({ ...(prev || {}), [tab]: parsed }));
+    pushToast('Saved successfully', 'success');
+    setData((prev: any) => ({ ...(prev || {}), [tab]: payload }));
+    setRawText(JSON.stringify(payload, null, 2));
   };
 
-  const current = useMemo(() => {
-    try { return JSON.stringify(JSON.parse(json), null, 2); } catch { return json; }
-  }, [json]);
+  const sectionValue = useMemo(() => (data || {})[tab] ?? {}, [data, tab]);
+  const setSection = (v: any) => setData((prev: any) => ({ ...(prev || {}), [tab]: v }));
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-neutral-950 text-gray-900 dark:text-gray-100">
       <div className="mx-auto max-w-6xl px-4 py-10">
-        <h1 className="text-2xl font-semibold">Admin</h1>
+        <Toasts items={toasts} onClose={closeToast} />
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-semibold">Admin</h1>
+          <button type="button" onClick={() => setRaw((r) => !r)} className="btn-secondary text-xs">{raw ? 'Form view' : 'Raw JSON'}</button>
+        </div>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Edit site content by section. Basic Auth protected via middleware (env ADMIN_USER / ADMIN_PASS).</p>
 
         <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-4">
@@ -89,8 +957,43 @@ export default function AdminPage() {
               <div className="mt-4">
                 {loading ? (
                   <div className="text-sm text-gray-600">Loading…</div>
+                ) : raw ? (
+                  <Textarea rows={20} value={rawText} onChange={(e) => setRawText(e.target.value)} />
                 ) : (
-                  <textarea value={json} onChange={(e) => setJson(e.target.value)} rows={20} className="w-full resize-y rounded-md border border-gray-300 bg-white p-3 font-mono text-xs leading-5 dark:border-gray-700 dark:bg-neutral-900" />
+                  <div className="space-y-4">
+                    {tab === 'hero' && <HeroEditor value={sectionValue} onChange={setSection} />}
+                    {tab === 'marquee' && (
+                      <div>
+                        <Label>Capabilities</Label>
+                        <ReorderablePillsEditor value={Array.isArray(sectionValue) ? (sectionValue as any) : (Array.isArray(sectionValue?.items) ? sectionValue.items : [])} onChange={(arr) => setSection(arr)} placeholder="Add capability" />
+                      </div>
+                    )}
+                    {tab === 'services' && <ServicesEditor value={sectionValue} onChange={setSection} />}
+                    {tab === 'process' && <ProcessEditor value={sectionValue} onChange={setSection} />}
+                    {tab === 'beliefs' && <BeliefsEditor value={Array.isArray(sectionValue) ? sectionValue : []} onChange={setSection} />}
+                    {tab === 'clients' && (
+                      <Field label="Heading title"><TextInput value={(sectionValue?.title ?? '') as any} onChange={(e) => setSection({ ...(sectionValue || {}), title: e.target.value })} /></Field>
+                    )}
+                    {tab === 'clientLogos' && <ClientLogosEditor value={Array.isArray(sectionValue) ? sectionValue : []} onChange={setSection} />}
+                    {tab === 'caseStudies' && <CaseStudiesEditor value={sectionValue} onChange={setSection} />}
+                    {tab === 'about' && <AboutEditor value={sectionValue} onChange={setSection} />}
+                    {tab === 'book' && (
+                      <div className="space-y-4">
+                        <Field label="Title"><TextInput value={sectionValue?.title || ''} onChange={(e) => setSection({ ...(sectionValue || {}), title: e.target.value })} /></Field>
+                        <div>
+                          <Label>Paragraphs</Label>
+                          <StringListEditor value={Array.isArray(sectionValue?.paragraphs) ? sectionValue.paragraphs : []} onChange={(arr) => setSection({ ...(sectionValue || {}), paragraphs: arr })} placeholder="Paragraph" />
+                        </div>
+                      </div>
+                    )}
+                    {tab === 'contact' && <ContactEditor value={sectionValue} onChange={setSection} />}
+                    {tab === 'schema' && (
+                      <div>
+                        <SchemaEditor value={sectionValue} onChange={setSection} contextData={data} onToast={pushToast} />
+                      </div>
+                    )}
+                    {tab === 'settings' && <SettingsEditor value={sectionValue} onChange={setSection} />}
+                  </div>
                 )}
               </div>
               <div className="mt-3 flex items-center gap-3">
@@ -104,10 +1007,9 @@ export default function AdminPage() {
           </section>
         </div>
         <div className="mt-6 text-xs text-gray-500 dark:text-gray-400">
-          Note: On platforms with read-only filesystems (e.g., Vercel), saving writes to a local JSON file that may not persist. Hook up a DB (KV/Supabase) for production use.
+          Uploads go to Supabase Storage (bucket: uploads) when configured, or to <code>/public/uploads</code> in local dev.
         </div>
       </div>
     </main>
   );
 }
-

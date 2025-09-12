@@ -121,8 +121,8 @@ export function Hero({ hero }: { hero?: typeof site.hero }) {
             >
               <div className="relative aspect-[8/10] bg-white">
                 <Image
-                  src="/images/hero-man.webp"
-                  alt="Hand drawn man sketch"
+                  src={content.image || "/images/hero-man.webp"}
+                  alt={content.title || "Hero image"}
                   fill
                   className="object-cover"
                   priority

@@ -11,9 +11,9 @@ import { About } from "../components/About";
 import { BookCall } from "../components/BookCall";
 import { Contact } from "../components/Contact";
 import { site } from "../content/site";
+import Script from "next/script";
 
 export default async function Page() {
-  const supabase = createAnonServerClient();
   let hero = fallback.hero;
   let marquee: string[] = Array.from(fallback.marquee);
   let services = fallback.services;
@@ -25,126 +25,60 @@ export default async function Page() {
   let clientsHeading = fallback.clients;
   let clientsLogos: { src: string; alt: string }[] = Array.from(fallback.clientLogos);
   let beliefs: { title: string; quote: string }[] = Array.from(fallback.beliefs);
+  let schemaJson: any = null;
+
   try {
-    const { data, error } = await supabase
-      .from("sections")
-      .select("data")
-      .eq("id", "hero")
-      .single();
-    if (!error && data?.data) {
-      hero = { ...hero, ...data.data };
-    }
-  } catch {}
-  try {
-    const { data, error } = await supabase
-      .from("sections")
-      .select("data")
-      .eq("id", "clients")
-      .single();
-    if (!error && data?.data) {
-      clientsHeading = { ...clientsHeading, ...data.data };
-    }
-  } catch {}
-  try {
-    const { data, error } = await supabase
-      .from("sections")
-      .select("data")
-      .eq("id", "clientLogos")
-      .single();
-    if (!error && Array.isArray(data?.data)) {
-      clientsLogos = (data!.data as unknown) as { src: string; alt: string }[];
-    }
-  } catch {}
-  try {
-    const { data, error } = await supabase
-      .from("sections")
-      .select("data")
-      .eq("id", "beliefs")
-      .single();
-    if (!error && Array.isArray(data?.data) && (data!.data as any[]).length > 0) {
-      beliefs = (data!.data as unknown) as { title: string; quote: string }[];
-    }
-  } catch {}
-  try {
-    const { data, error } = await supabase
-      .from("sections")
-      .select("data")
-      .eq("id", "caseStudies")
-      .single();
-    if (!error && data?.data) {
-      caseStudiesContent = { ...caseStudiesContent, ...data.data };
-      // Ensure items is an array
-      if (!Array.isArray((caseStudiesContent as any).items)) {
-        (caseStudiesContent as any).items = fallback.caseStudies.items;
+    const supabase = createAnonServerClient();
+    const { data, error } = await supabase.from("sections").select("id, data");
+    if (!error && Array.isArray(data)) {
+      const map = new Map<string, any>(data.map((row: any) => [row.id, row.data]));
+      const v = (k: string) => map.get(k);
+
+      const h = v("hero");
+      if (h && typeof h === "object") hero = { ...hero, ...h };
+
+      const sc = v("schema");
+      if (sc && typeof sc === "object") schemaJson = sc;
+
+      const cl = v("clients");
+      if (cl && typeof cl === "object") clientsHeading = { ...clientsHeading, ...cl };
+
+      const logos = v("clientLogos");
+      if (Array.isArray(logos)) clientsLogos = logos as { src: string; alt: string }[];
+
+      const bel = v("beliefs");
+      if (Array.isArray(bel) && bel.length > 0) beliefs = bel as { title: string; quote: string }[];
+
+      const cs = v("caseStudies");
+      if (cs && typeof cs === "object") {
+        caseStudiesContent = { ...caseStudiesContent, ...cs } as typeof caseStudiesContent;
+        if (!Array.isArray((caseStudiesContent as any).items)) (caseStudiesContent as any).items = fallback.caseStudies.items;
       }
-    }
-  } catch {}
-  try {
-    const { data, error } = await supabase
-      .from("sections")
-      .select("data")
-      .eq("id", "book")
-      .single();
-    if (!error && data?.data) {
-      bookContent = { ...bookContent, ...data.data };
-    }
-  } catch {}
-  try {
-    const { data, error } = await supabase
-      .from("sections")
-      .select("data")
-      .eq("id", "contact")
-      .single();
-    if (!error && data?.data) {
-      contactContent = { ...contactContent, ...data.data };
-    }
-  } catch {}
-  try {
-    const { data, error } = await supabase
-      .from("sections")
-      .select("data")
-      .eq("id", "services")
-      .single();
-    if (!error && data?.data) {
-      services = { ...services, ...data.data };
-    }
-  } catch {}
-  try {
-    const { data, error } = await supabase
-      .from("sections")
-      .select("data")
-      .eq("id", "process")
-      .single();
-    if (!error && data?.data) {
-      processContent = { ...processContent, ...data.data };
-    }
-  } catch {}
-  try {
-    const { data, error } = await supabase
-      .from("sections")
-      .select("data")
-      .eq("id", "about")
-      .single();
-    if (!error && data?.data) {
-      aboutContent = { ...aboutContent, ...data.data };
-    }
-  } catch {}
-  try {
-    const { data: data2, error: error2 } = await supabase
-      .from("sections")
-      .select("data")
-      .eq("id", "marquee")
-      .single();
-    if (
-      !error2 &&
-      Array.isArray(data2?.data) &&
-      (data2!.data as any[]).length > 0
-    ) {
-      marquee = data2!.data as string[];
+
+      const bk = v("book");
+      if (bk && typeof bk === "object") bookContent = { ...bookContent, ...bk };
+
+      const ct = v("contact");
+      if (ct && typeof ct === "object") contactContent = { ...contactContent, ...ct };
+
+      const sv = v("services");
+      if (sv && typeof sv === "object") services = { ...services, ...sv };
+
+      const pr = v("process");
+      if (pr && typeof pr === "object") processContent = { ...processContent, ...pr };
+
+      const ab = v("about");
+      if (ab && typeof ab === "object") aboutContent = { ...aboutContent, ...ab };
+
+      const mq = v("marquee");
+      if (Array.isArray(mq) && mq.length > 0) marquee = mq as string[];
     }
   } catch {}
   return (
     <>
+      {schemaJson && (
+        <Script id="jsonld-schema" type="application/ld+json" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJson) }} />
+      )}
       <Hero hero={hero} />
       <Marquee marquee={marquee} />
       <Services services={services} />

@@ -6,6 +6,7 @@ import { MobileNav } from "../components/MobileNav";
 import { Montserrat } from "next/font/google";
 
 import { Analytics } from "@vercel/analytics/next";
+import { createAnonServerClient } from "../utils/supabase/server";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -14,21 +15,93 @@ const montserrat = Montserrat({
   weight: ["400", "500", "600", "700"],
 });
 
-export const metadata: Metadata = {
-  title: "Farbox Clone",
-  description: "Recreation using Next.js and Tailwind",
-};
+const DEFAULT_TITLE = "Farbox Clone";
+const DEFAULT_DESCRIPTION = "Recreation using Next.js and Tailwind";
 
-export default function RootLayout({
+export async function generateMetadata(): Promise<Metadata> {
+  let icons: Metadata['icons'] | undefined = undefined;
+  let title = DEFAULT_TITLE;
+  let description = DEFAULT_DESCRIPTION;
+  let siteName: string | undefined = undefined;
+  let canonicalUrl: string | undefined = undefined;
+  let ogTitle: string | undefined = undefined;
+  let ogDescription: string | undefined = undefined;
+  let ogImageUrl: string | undefined = undefined;
+  let twitterCard: string | undefined = undefined;
+  let twitterSite: string | undefined = undefined;
+  try {
+    const supabase = createAnonServerClient();
+    const { data, error } = await supabase
+      .from("sections")
+      .select("data")
+      .eq("id", "settings")
+      .single();
+    const settings: any = !error ? data?.data : undefined;
+    const faviconUrl = settings?.faviconUrl as string | undefined;
+    if (faviconUrl) {
+      icons = {
+        icon: [{ url: faviconUrl }],
+        shortcut: [{ url: faviconUrl }],
+        apple: [{ url: faviconUrl }],
+      } as NonNullable<Metadata['icons']>;
+    }
+    if (settings) {
+      title = (settings.seoTitle as string) || title;
+      description = (settings.seoDescription as string) || description;
+      siteName = (settings.siteName as string) || undefined;
+      canonicalUrl = (settings.canonicalUrl as string) || undefined;
+      ogTitle = (settings.ogTitle as string) || title;
+      ogDescription = (settings.ogDescription as string) || description;
+      ogImageUrl = (settings.ogImageUrl as string) || undefined;
+      twitterCard = (settings.twitterCard as string) || 'summary_large_image';
+      twitterSite = (settings.twitterSite as string) || undefined;
+    }
+  } catch {}
+  return {
+    title,
+    description,
+    icons,
+    openGraph: {
+      title: ogTitle || title,
+      description: ogDescription || description,
+      siteName: siteName || title,
+      url: canonicalUrl,
+      images: ogImageUrl ? [{ url: ogImageUrl }] : undefined,
+      type: 'website',
+    },
+    twitter: {
+      card: twitterCard || 'summary_large_image',
+      site: twitterSite,
+      title: ogTitle || title,
+      description: ogDescription || description,
+      images: ogImageUrl ? [ogImageUrl] : undefined,
+    },
+    alternates: canonicalUrl ? { canonical: canonicalUrl } : undefined,
+  } satisfies Metadata;
+}
+
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Load dynamic settings (e.g., logoUrl)
+  let logoUrl: string | undefined = undefined;
+  try {
+    const supabase = createAnonServerClient();
+    const { data, error } = await supabase
+      .from("sections")
+      .select("data")
+      .eq("id", "settings")
+      .single();
+    if (!error && data?.data?.logoUrl) logoUrl = data.data.logoUrl as string;
+  } catch {}
+
   return (
     <html lang="en" className={montserrat.variable}>
       <body className="antialiased bg-white text-gray-900 dark:bg-neutral-950 dark:text-gray-100">
         <Analytics />
-        <Header />
+        <Header logoUrl={logoUrl} />
         <main className="md:pb-0">{children}</main>
         <Footer />
         <MobileNav />

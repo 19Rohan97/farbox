@@ -5,6 +5,7 @@ export const site = {
     title: "Finely Crafted Websites",
     subhead: "For Serious Businesses.",
     body: "Here we care about the story behind the site. We don’t do high volume work, we take the time to sit with each project and craft it into your voice.",
+    image: "/images/hero-man.webp",
     stats: [
       { value: "10+ yrs", label: "Experience" },
       { value: "120+", label: "Projects shipped" },
