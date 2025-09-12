@@ -1,5 +1,6 @@
 import { Container } from './Container';
 import { site } from '../content/site';
+import { BackToTop } from './BackToTop';
 
 export function Footer() {
   return (
@@ -41,7 +42,7 @@ export function Footer() {
         </div>
         <div className="mt-10 border-t border-white/10 pt-6 text-xs text-white/60 flex items-center justify-between">
           <p>Farbox Creative ©2012-{new Date().getFullYear()}</p>
-          <a href="#home" className="hover:text-white">Back to top ↑</a>
+          <BackToTop className="hover:text-white" />
         </div>
       </Container>
     </footer>

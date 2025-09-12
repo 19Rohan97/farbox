@@ -58,6 +58,36 @@ html {
   .chip-brand {
     @apply inline-flex items-center rounded-lg border border-brand-500/30 bg-brand-500/10 px-3 py-1 text-xs font-medium text-brand-500;
   }
+
+  /* Article/Markdown typography */
+  .article-content {
+    @apply text-base leading-7 text-gray-800 dark:text-gray-200;
+  }
+  .article-content h1 { @apply mt-8 text-3xl font-semibold tracking-tight sm:text-4xl; }
+  .article-content h2 { @apply mt-10 text-2xl font-semibold tracking-tight sm:text-3xl; }
+  .article-content h3 { @apply mt-8 text-xl font-semibold tracking-tight sm:text-2xl; }
+  .article-content h4 { @apply mt-6 text-lg font-semibold; }
+  .article-content p { @apply mt-4; }
+  .article-content ul { @apply mt-4 list-disc space-y-2 pl-5; }
+  .article-content ol { @apply mt-4 list-decimal space-y-2 pl-5; }
+  .article-content li { @apply leading-7; }
+  .article-content hr { @apply my-8 border-gray-200 dark:border-gray-800; }
+  .article-content a { @apply underline decoration-gray-400 underline-offset-2 hover:text-brand-500; }
+  .article-content code { @apply rounded bg-gray-100 px-1.5 py-0.5 text-[0.9em] text-gray-800 dark:bg-white/10 dark:text-gray-100; }
+  .article-content strong { @apply font-semibold; }
+  .article-content blockquote { @apply mt-6 border-l-4 border-brand-500/40 pl-4 text-gray-700 italic dark:text-gray-200; }
+  .article-content pre.code-block { @apply mt-6 overflow-x-auto rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm dark:border-gray-800 dark:bg-neutral-900; }
+  .article-content pre.code-block code { @apply bg-transparent p-0; }
+
+  /* Ensure anchored headings are visible below sticky header */
+  .article-content h1,
+  .article-content h2,
+  .article-content h3,
+  .article-content h4,
+  .article-content h5,
+  .article-content h6 {
+    scroll-margin-top: 6rem; /* ~96px to clear sticky header */
+  }
 }
 
 /* Marquee styles */

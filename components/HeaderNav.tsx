@@ -90,6 +90,10 @@ export function HeaderNav() {
           </Link>
         );
       })}
+      <Link href="/blog" className="group relative py-1 hover:text-white">
+        <span>Blog</span>
+        <span className="pointer-events-none absolute left-1/2 -bottom-1 h-0.5 w-8 -translate-x-1/2 transform origin-center rounded-full bg-brand-500 transition-transform duration-300 group-hover:scale-x-100 scale-x-0" />
+      </Link>
     </nav>
   );
 }

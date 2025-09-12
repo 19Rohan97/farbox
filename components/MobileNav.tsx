@@ -20,6 +20,24 @@ const Icon = {
       <path d="M9 21V9h6v12" />
     </svg>
   ),
+  blog: (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+      <path d="M16 13H8" />
+      <path d="M16 17H8" />
+      <path d="M10 9H8" />
+    </svg>
+  ),
   services: (
     <svg
       width="22"
@@ -84,19 +102,16 @@ const Icon = {
 };
 
 const items: NavItem[] = [
-  { href: "#home", label: "Home", icon: Icon.home },
   { href: "#services", label: "Services", icon: Icon.services },
   { href: "#case-studies", label: "Case Studies", icon: Icon.work },
   { href: "#about", label: "About", icon: Icon.about },
+  { href: "/blog", label: "Blog", icon: Icon.blog },
   { href: "#contact", label: "Contact", icon: Icon.contact },
 ];
 
 export function MobileNav() {
   const [active, setActive] = useState<string>("");
-  const sectionIds = useMemo(
-    () => items.map((n) => n.href.replace("#", "")),
-    []
-  );
+  const sectionIds = useMemo(() => items.filter((n) => n.href.startsWith('#')).map((n) => n.href.replace('#', '')), []);
 
   useEffect(() => {
     let raf = 0 as number | 0;
@@ -161,7 +176,7 @@ export function MobileNav() {
     >
       <ul className="mx-auto grid max-w-3xl auto-cols-max grid-flow-col justify-center gap-4 px-2 py-2">
         {items.map((item) => {
-          const isActive = active === item.href;
+          const isActive = item.href.startsWith('#') && active === item.href;
           return (
             <li key={item.href} className="w-full">
               <Link
