@@ -105,7 +105,7 @@ function ImageUpload({ value, onChange, buttonLabel = 'Upload image' }: { value?
     }
   };
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-3">
       <input type="file" accept="image/*" onChange={onPick} disabled={busy} className="text-xs" />
       <span className="text-xs text-gray-500">{busy ? 'Uploading…' : buttonLabel}</span>
       {value && <a href={value} target="_blank" rel="noreferrer" className="text-xs text-brand-500 underline">Preview</a>}
@@ -827,14 +827,14 @@ function SchemaEditor({ value, onChange, contextData, onToast }: { value: any; o
             <Field label="Website URL"><TextInput value={url} onChange={(e) => setUrl(e.target.value)} /></Field>
             <Field label="Telephone"><TextInput value={telephone} onChange={(e) => setTelephone(e.target.value)} /></Field>
             <Field label="Price range"><TextInput value={priceRange} onChange={(e) => setPriceRange(e.target.value)} /></Field>
-            <div className="col-span-2 grid grid-cols-2 gap-2">
+            <div className="col-span-2 grid md:grid-cols-2 gap-2">
               <Field label="Logo URL"><TextInput value={logo} onChange={(e) => setLogo(e.target.value)} /></Field>
               <div className="pt-5"><ImageUpload value={logo} onChange={(url) => { setLogo(url); const j = buildJsonFromForm({ logo: url }); setText(JSON.stringify(j, null, 2)); onChange(j); onToast?.('Applied logo to schema', 'success'); }} buttonLabel="Upload logo" /></div>
               <Field label="Image URL"><TextInput value={image} onChange={(e) => setImage(e.target.value)} /></Field>
               <div className="pt-5"><ImageUpload value={image} onChange={(url) => { setImage(url); const j = buildJsonFromForm({ image: url }); setText(JSON.stringify(j, null, 2)); onChange(j); onToast?.('Applied image to schema', 'success'); }} buttonLabel="Upload image" /></div>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             <Field label="Address locality"><TextInput value={addressLocality} onChange={(e) => setAddressLocality(e.target.value)} /></Field>
             <Field label="Address region"><TextInput value={addressRegion} onChange={(e) => setAddressRegion(e.target.value)} /></Field>
             <Field label="Address country"><TextInput value={addressCountry} onChange={(e) => setAddressCountry(e.target.value)} /></Field>
@@ -849,7 +849,7 @@ function SchemaEditor({ value, onChange, contextData, onToast }: { value: any; o
                   <button key={d} type="button" onClick={() => setOpeningDays((prev) => active ? prev.filter((x) => x !== d) : [...prev, d])} className={(active ? 'bg-brand-500 text-white' : 'bg-white text-gray-700 dark:bg-neutral-900 dark:text-gray-200') + ' rounded-md border border-gray-300 px-2 py-1 dark:border-gray-700'}>{d.slice(0,3)}</button>
                 );
               })}
-              <div className="ml-auto flex items-center gap-2">
+              <div className="ml-auto flex items-center gap-2 flex-wrap">
                 <span>Opens</span>
                 <input type="time" value={opens} onChange={(e) => setOpens(e.target.value)} className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-700 dark:bg-neutral-900" />
                 <span>Closes</span>
