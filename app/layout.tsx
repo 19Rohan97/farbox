@@ -57,6 +57,12 @@ export async function generateMetadata(): Promise<Metadata> {
       twitterSite = (settings.twitterSite as string) || undefined;
     }
   } catch {}
+  // Normalize twitter card to allowed union
+  const card: 'summary' | 'summary_large_image' | 'player' | 'app' =
+    twitterCard === 'summary' || twitterCard === 'player' || twitterCard === 'app'
+      ? (twitterCard as any)
+      : 'summary_large_image';
+
   return {
     title,
     description,
@@ -70,7 +76,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: 'website',
     },
     twitter: {
-      card: twitterCard || 'summary_large_image',
+      card,
       site: twitterSite,
       title: ogTitle || title,
       description: ogDescription || description,
