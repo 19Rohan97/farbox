@@ -612,12 +612,18 @@ function SchemaEditor({ value, onChange, contextData, onToast }: { value: any; o
   const [addressLocality, setAddressLocality] = useState('');
   const [addressRegion, setAddressRegion] = useState('');
   const [addressCountry, setAddressCountry] = useState('');
+  const [postalCode, setPostalCode] = useState('');
   const [openingDays, setOpeningDays] = useState<string[]>(['Monday','Tuesday','Wednesday','Thursday','Friday']);
   const [opens, setOpens] = useState('09:00');
   const [closes, setCloses] = useState('17:00');
   const [sameAs, setSameAs] = useState<string[]>([]);
+  const [areaServed, setAreaServed] = useState<string[]>([]);
   const [servicesList, setServicesList] = useState<ServiceItem[]>([]);
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
+  const [includeOrg, setIncludeOrg] = useState(false);
+  const [includeProf, setIncludeProf] = useState(true);
+  const [includeWebsite, setIncludeWebsite] = useState(true);
+  const [websiteName, setWebsiteName] = useState('');
   useEffect(() => {
     const pretty = JSON.stringify(value ?? {}, null, 2);
     setText(pretty);
@@ -641,6 +647,7 @@ function SchemaEditor({ value, onChange, contextData, onToast }: { value: any; o
       const fullLogo = logoPath.startsWith('http') ? logoPath : origin + logoPath;
       setLogo(fullLogo);
       setImage(fullLogo);
+      setWebsiteName('Farbox Creative');
       // If existing JSON-LD present, try to hydrate more precisely
       const obj = value || {};
       const graph = Array.isArray(obj['@graph']) ? obj['@graph'] : [];
@@ -690,20 +697,29 @@ function SchemaEditor({ value, onChange, contextData, onToast }: { value: any; o
   };
 
   // Helper to build JSON-LD from current form state
+  const slugify = (s: string) => (s || '')
+    .toLowerCase()
+    .trim()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
   const buildJsonFromForm = (opts?: Partial<{ logo: string; image: string }>) => {
     const agencyId = (url || '').replace(/\/$/, '') + '/#agency';
+    const websiteId = (url || '').replace(/\/$/, '') + '/#website';
+    const types: any = ['LocalBusiness', ...(includeOrg ? ['Organization'] : []), ...(includeProf ? ['ProfessionalService'] : [])];
     const jsonld: any = {
       '@context': 'https://schema.org',
       '@graph': [
         {
-          '@type': 'LocalBusiness',
+          '@type': types,
           '@id': agencyId,
           name: businessName || undefined,
           legalName: legalName || undefined,
           description: undefined,
           url: url || undefined,
-          logo: (opts?.logo ?? logo) || undefined,
-          image: (opts?.image ?? image) || undefined,
+          logo: (opts?.logo ?? logo) ? { '@type': 'ImageObject', url: (opts?.logo ?? logo) } : undefined,
+          image: (opts?.image ?? image) ? { '@type': 'ImageObject', url: (opts?.image ?? image) } : undefined,
           telephone: telephone || undefined,
           priceRange: priceRange || undefined,
           address: (addressLocality || addressRegion || addressCountry) ? {
@@ -711,14 +727,31 @@ function SchemaEditor({ value, onChange, contextData, onToast }: { value: any; o
             addressLocality: addressLocality || undefined,
             addressRegion: addressRegion || undefined,
             addressCountry: addressCountry || undefined,
+            postalCode: postalCode || undefined,
           } : undefined,
           openingHoursSpecification: openingDays.length ? [ { '@type': 'OpeningHoursSpecification', dayOfWeek: openingDays, opens: opens || undefined, closes: closes || undefined } ] : undefined,
           contactPoint: telephone ? [ { '@type': 'ContactPoint', telephone: telephone, contactType: 'customer service' } ] : undefined,
           sameAs: sameAs.length ? sameAs : undefined,
         },
-        ...servicesList.filter((s) => s.name).map((s) => ({ '@type': 'Service', name: s.name, description: s.description || undefined, provider: { '@id': agencyId } })),
+        ...servicesList.filter((s) => s.name).map((s) => {
+          const slug = slugify(s.name);
+          const serviceUrl = (s as any).url || ((url || '').replace(/\/$/, '') + '/services/' + slug);
+          return {
+            '@type': 'Service',
+            '@id': serviceUrl + '#service',
+            name: s.name,
+            description: s.description || undefined,
+            serviceType: (s as any).serviceType || undefined,
+            areaServed: areaServed.length ? areaServed : undefined,
+            url: serviceUrl,
+            provider: { '@id': agencyId },
+          };
+        }),
       ],
     };
+    if (includeWebsite) {
+      jsonld['@graph'].push({ '@type': 'WebSite', '@id': websiteId, url: url || undefined, name: websiteName || businessName || undefined, publisher: { '@id': agencyId } });
+    }
     if (faqs.length) {
       jsonld['@graph'].push({ '@type': 'FAQPage', mainEntity: faqs.filter(f => f.q && f.a).map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) });
     }
@@ -805,6 +838,7 @@ function SchemaEditor({ value, onChange, contextData, onToast }: { value: any; o
             <Field label="Address locality"><TextInput value={addressLocality} onChange={(e) => setAddressLocality(e.target.value)} /></Field>
             <Field label="Address region"><TextInput value={addressRegion} onChange={(e) => setAddressRegion(e.target.value)} /></Field>
             <Field label="Address country"><TextInput value={addressCountry} onChange={(e) => setAddressCountry(e.target.value)} /></Field>
+            <Field label="Postal code"><TextInput value={postalCode} onChange={(e) => setPostalCode(e.target.value)} /></Field>
           </div>
           <div className="space-y-2">
             <Label>Opening hours</Label>
@@ -827,12 +861,35 @@ function SchemaEditor({ value, onChange, contextData, onToast }: { value: any; o
             <Label>Social profiles (sameAs)</Label>
             <ReorderablePillsEditor value={sameAs} onChange={setSameAs} placeholder="https://..." />
           </div>
+          <div>
+            <Label>Area served</Label>
+            <ReorderablePillsEditor value={areaServed} onChange={setAreaServed} placeholder="Australia, Global, ..." />
+          </div>
+          <div className="space-y-2">
+            <Label>Organization types</Label>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <button type="button" onClick={() => setIncludeOrg(v => !v)} className={(includeOrg ? 'bg-brand-500 text-white' : 'bg-white text-gray-700 dark:bg-neutral-900 dark:text-gray-200') + ' rounded-md border border-gray-300 px-2 py-1 dark:border-gray-700'}>Organization</button>
+              <button type="button" onClick={() => setIncludeProf(v => !v)} className={(includeProf ? 'bg-brand-500 text-white' : 'bg-white text-gray-700 dark:bg-neutral-900 dark:text-gray-200') + ' rounded-md border border-gray-300 px-2 py-1 dark:border-gray-700'}>ProfessionalService</button>
+              <span className="text-gray-500 dark:text-gray-400">LocalBusiness is always included</span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Website node</Label>
+            <div className="flex items-center gap-2 text-xs">
+              <label className="inline-flex items-center gap-2"><input type="checkbox" checked={includeWebsite} onChange={(e) => setIncludeWebsite(e.target.checked)} /> Include WebSite</label>
+              <div className="flex-1">
+                <Field label="Website name"><TextInput value={websiteName} onChange={(e) => setWebsiteName(e.target.value)} /></Field>
+              </div>
+            </div>
+          </div>
           <div className="space-y-2">
             <Label>Services</Label>
             <div className="space-y-3">
               {servicesList.map((s, i) => (
                 <div key={i} className="grid grid-cols-2 gap-2 rounded-md border border-gray-200 p-2 dark:border-gray-800">
                   <TextInput placeholder="Name" value={s.name} onChange={(e) => { const arr = [...servicesList]; arr[i] = { ...arr[i], name: e.target.value }; setServicesList(arr); }} />
+                  <TextInput placeholder="Service URL (optional)" value={(s as any).url || ''} onChange={(e) => { const arr = [...servicesList]; (arr[i] as any) = { ...(arr[i] as any), url: e.target.value }; setServicesList(arr); }} />
+                  <TextInput placeholder="Service type (optional)" value={(s as any).serviceType || ''} onChange={(e) => { const arr = [...servicesList]; (arr[i] as any) = { ...(arr[i] as any), serviceType: e.target.value }; setServicesList(arr); }} />
                   <div className="col-span-2"><Textarea placeholder="Description" rows={2} value={s.description || ''} onChange={(e) => { const arr = [...servicesList]; arr[i] = { ...arr[i], description: e.target.value }; setServicesList(arr); }} /></div>
                   <div className="col-span-2 flex justify-end"><IconButton title="Remove" onClick={() => setServicesList(servicesList.filter((_, idx) => idx !== i))}>Remove</IconButton></div>
                 </div>
