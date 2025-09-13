@@ -76,6 +76,19 @@ A clean, modern recreation of farbox.com.au built with Next.js (App Router) and 
 - Vercel (recommended): push to a repo and import into Vercel
 - Any Node host: `npm run build` then `npm start`
 
+### Production uploads (audio/video/images)
+
+Admin uploads use Supabase Storage in production. Configure the following env vars and create a public bucket named `uploads`:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+Notes:
+- The upload API returns a public Supabase URL like `https://<project>.supabase.co/storage/v1/object/public/uploads/admin/<filename>`.
+- In development (no Supabase envs), files are written to `public/uploads` and served at `/uploads/<filename>`.
+- In production without Supabase configured, uploads are intentionally blocked to avoid returning non-persistent `/uploads/...` URLs.
+
 ## Notes
 
 - The contact form is UI‑only. Hook up an API route or a service (Resend/SendGrid) for submissions.

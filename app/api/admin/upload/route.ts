@@ -56,7 +56,19 @@ export async function POST(req: Request) {
       }
     }
 
-    // Local filesystem fallback -> public/uploads
+    // In production without Supabase, do not attempt local writes (not persistent on serverless)
+    if (process.env.NODE_ENV === 'production' && !(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            'Uploads are not configured for production. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY and create a public "uploads" bucket.',
+        },
+        { status: 500 }
+      );
+    }
+
+    // Local filesystem fallback -> public/uploads (dev/local only)
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
     try { await fs.mkdir(uploadsDir, { recursive: true }); } catch {}
     const outPath = path.join(uploadsDir, filename);
