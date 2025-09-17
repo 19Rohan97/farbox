@@ -11,6 +11,7 @@ import { About } from "../components/About";
 import { BookCall } from "../components/BookCall";
 import { Contact } from "../components/Contact";
 import { site } from "../content/site";
+import { getSectionVisibility, isSectionVisible } from "../lib/visibility";
 import Script from "next/script";
 
 export default async function Page() {
@@ -23,15 +24,24 @@ export default async function Page() {
   let contactContent = fallback.contact;
   let caseStudiesContent = fallback.caseStudies;
   let clientsHeading = fallback.clients;
-  let clientsLogos: { src: string; alt: string }[] = Array.from(fallback.clientLogos);
-  let beliefs: { title: string; quote: string }[] = Array.from(fallback.beliefs);
+  let clientsLogos: { src: string; alt: string }[] = Array.from(
+    fallback.clientLogos
+  );
+  let beliefs: { title: string; quote: string }[] = Array.from(
+    fallback.beliefs
+  );
   let schemaJson: any = null;
+
+  // Get section visibility settings
+  const sectionVisibility = await getSectionVisibility();
 
   try {
     const supabase = createAnonServerClient();
     const { data, error } = await supabase.from("sections").select("id, data");
     if (!error && Array.isArray(data)) {
-      const map = new Map<string, any>(data.map((row: any) => [row.id, row.data]));
+      const map = new Map<string, any>(
+        data.map((row: any) => [row.id, row.data])
+      );
       const v = (k: string) => map.get(k);
 
       const h = v("hero");
@@ -41,34 +51,44 @@ export default async function Page() {
       if (sc && typeof sc === "object") schemaJson = sc;
 
       const cl = v("clients");
-      if (cl && typeof cl === "object") clientsHeading = { ...clientsHeading, ...cl };
+      if (cl && typeof cl === "object")
+        clientsHeading = { ...clientsHeading, ...cl };
 
       const logos = v("clientLogos");
-      if (Array.isArray(logos)) clientsLogos = logos as { src: string; alt: string }[];
+      if (Array.isArray(logos))
+        clientsLogos = logos as { src: string; alt: string }[];
 
       const bel = v("beliefs");
-      if (Array.isArray(bel) && bel.length > 0) beliefs = bel as { title: string; quote: string }[];
+      if (Array.isArray(bel) && bel.length > 0)
+        beliefs = bel as { title: string; quote: string }[];
 
       const cs = v("caseStudies");
       if (cs && typeof cs === "object") {
-        caseStudiesContent = { ...caseStudiesContent, ...cs } as typeof caseStudiesContent;
-        if (!Array.isArray((caseStudiesContent as any).items)) (caseStudiesContent as any).items = fallback.caseStudies.items;
+        caseStudiesContent = {
+          ...caseStudiesContent,
+          ...cs,
+        } as typeof caseStudiesContent;
+        if (!Array.isArray((caseStudiesContent as any).items))
+          (caseStudiesContent as any).items = fallback.caseStudies.items;
       }
 
       const bk = v("book");
       if (bk && typeof bk === "object") bookContent = { ...bookContent, ...bk };
 
       const ct = v("contact");
-      if (ct && typeof ct === "object") contactContent = { ...contactContent, ...ct };
+      if (ct && typeof ct === "object")
+        contactContent = { ...contactContent, ...ct };
 
       const sv = v("services");
       if (sv && typeof sv === "object") services = { ...services, ...sv };
 
       const pr = v("process");
-      if (pr && typeof pr === "object") processContent = { ...processContent, ...pr };
+      if (pr && typeof pr === "object")
+        processContent = { ...processContent, ...pr };
 
       const ab = v("about");
-      if (ab && typeof ab === "object") aboutContent = { ...aboutContent, ...ab };
+      if (ab && typeof ab === "object")
+        aboutContent = { ...aboutContent, ...ab };
 
       const mq = v("marquee");
       if (Array.isArray(mq) && mq.length > 0) marquee = mq as string[];
@@ -77,18 +97,75 @@ export default async function Page() {
   return (
     <>
       {schemaJson && (
-        <Script id="jsonld-schema" type="application/ld+json" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJson) }} />
+        <Script
+          id="jsonld-schema"
+          type="application/ld+json"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJson) }}
+        />
       )}
+
+      {/* Hero is always visible (required section) */}
       <Hero hero={hero} />
-      <Marquee marquee={marquee} />
-      <Services services={services} />
-      <Clients clients={clientsHeading} clientLogos={clientsLogos} />
-      <Process process={processContent} />
-      <Belief title={(beliefs[0] ?? fallback.beliefs[0]).title} quote={(beliefs[0] ?? fallback.beliefs[0]).quote} />
-      <CaseStudies caseStudies={caseStudiesContent} />
-      <About about={aboutContent} />
-      <Belief title={(beliefs[1] ?? beliefs[0] ?? fallback.beliefs[1] ?? fallback.beliefs[0]).title} quote={(beliefs[1] ?? beliefs[0] ?? fallback.beliefs[1] ?? fallback.beliefs[0]).quote} />
-      <BookCall book={bookContent} />
+
+      {/* Conditionally render sections based on visibility settings */}
+      {isSectionVisible("marquee", sectionVisibility) && (
+        <Marquee marquee={marquee} />
+      )}
+
+      {isSectionVisible("services", sectionVisibility) && (
+        <Services services={services} />
+      )}
+
+      {isSectionVisible("clients", sectionVisibility) && (
+        <Clients clients={clientsHeading} clientLogos={clientsLogos} />
+      )}
+
+      {isSectionVisible("process", sectionVisibility) && (
+        <Process process={processContent} />
+      )}
+
+      {isSectionVisible("beliefs", sectionVisibility) && beliefs[0] && (
+        <Belief
+          title={(beliefs[0] ?? fallback.beliefs[0]).title}
+          quote={(beliefs[0] ?? fallback.beliefs[0]).quote}
+        />
+      )}
+
+      {isSectionVisible("caseStudies", sectionVisibility) && (
+        <CaseStudies caseStudies={caseStudiesContent} />
+      )}
+
+      {isSectionVisible("about", sectionVisibility) && (
+        <About about={aboutContent} />
+      )}
+
+      {isSectionVisible("beliefs", sectionVisibility) && beliefs[1] && (
+        <Belief
+          title={
+            (
+              beliefs[1] ??
+              beliefs[0] ??
+              fallback.beliefs[1] ??
+              fallback.beliefs[0]
+            ).title
+          }
+          quote={
+            (
+              beliefs[1] ??
+              beliefs[0] ??
+              fallback.beliefs[1] ??
+              fallback.beliefs[0]
+            ).quote
+          }
+        />
+      )}
+
+      {isSectionVisible("book", sectionVisibility) && (
+        <BookCall book={bookContent} />
+      )}
+
+      {/* Contact is always visible (required section) */}
       <Contact contact={contactContent} />
     </>
   );

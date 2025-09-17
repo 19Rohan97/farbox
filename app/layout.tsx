@@ -8,6 +8,7 @@ import { Montserrat } from "next/font/google";
 
 import { Analytics } from "@vercel/analytics/next";
 import { createAnonServerClient } from "../utils/supabase/server";
+import { getNavigationItems } from "../lib/navigation";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -94,32 +95,52 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Load dynamic settings (e.g., logoUrl, brandColor)
+  // Load dynamic settings (e.g., logoUrl, brandColor, navigation, header, footer)
   let logoUrl: string | undefined = undefined;
   let brandColor: string = "#f24711"; // Default brand color
+  let headerData: any = undefined;
+  let footerData: any = undefined;
+
+  // Load navigation items server-side to prevent flash
+  const navItems = await getNavigationItems();
 
   // Try to load from database with better error handling
   try {
     const supabase = createAnonServerClient();
     const { data, error } = await supabase
       .from("sections")
-      .select("data")
-      .eq("id", "settings")
-      .single();
+      .select("id, data")
+      .in("id", ["settings", "header", "footer", "contact"]);
 
-    if (!error && data?.data) {
-      if (data.data.logoUrl) logoUrl = data.data.logoUrl as string;
-      if (data.data.brandColor) {
-        // Validate the color format before using it
-        const color = data.data.brandColor as string;
-        if (color && /^#[0-9A-Fa-f]{6}$/.test(color)) {
-          brandColor = color;
+    if (!error && Array.isArray(data)) {
+      const sectionsMap = new Map(data.map((row: any) => [row.id, row.data]));
+
+      const settings = sectionsMap.get("settings");
+      if (settings) {
+        if (settings.logoUrl) logoUrl = settings.logoUrl as string;
+        if (settings.brandColor) {
+          // Validate the color format before using it
+          const color = settings.brandColor as string;
+          if (color && /^#[0-9A-Fa-f]{6}$/.test(color)) {
+            brandColor = color;
+          }
         }
+      }
+
+      headerData = sectionsMap.get("header");
+      footerData = sectionsMap.get("footer");
+      const contactData = sectionsMap.get("contact");
+
+      // Merge contact data into footer data for convenience
+      if (footerData && contactData) {
+        footerData = { ...footerData, contact: contactData };
+      } else if (contactData) {
+        footerData = { contact: contactData };
       }
     }
   } catch (error) {
-    // Silently fall back to default color if database is unavailable
-    console.log("Using default brand color - database unavailable");
+    // Silently fall back to defaults if database is unavailable
+    console.log("Using default settings - database unavailable");
   }
 
   return (
@@ -134,9 +155,9 @@ export default async function RootLayout({
       <body className="antialiased bg-white text-gray-900 dark:bg-neutral-950 dark:text-gray-100">
         <Analytics />
         <DynamicStyles />
-        <Header logoUrl={logoUrl} />
+        <Header logoUrl={logoUrl} navItems={navItems} headerData={headerData} />
         <main className="md:pb-0">{children}</main>
-        <Footer />
+        <Footer footerData={footerData} />
         <MobileNav />
       </body>
     </html>

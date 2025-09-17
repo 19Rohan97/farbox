@@ -1,21 +1,51 @@
 "use client";
-import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import type { NavItem } from "../lib/navigation";
+import { defaultNavItems } from "../lib/navigation";
 
-type NavItem = { href: string; label: string };
+export function HeaderNav({
+  navItems: initialNavItems,
+}: {
+  navItems?: NavItem[];
+}) {
+  const [active, setActive] = useState<string>("");
+  const [navItems, setNavItems] = useState<NavItem[]>(
+    initialNavItems || defaultNavItems
+  );
 
-const navItems: NavItem[] = [
-  { href: '#services', label: 'Services' },
-  { href: '#process', label: 'Process' },
-  { href: '#case-studies', label: 'Case Studies' },
-  { href: '#about', label: 'About' },
-  { href: '#contact', label: 'Contact' },
-];
+  // Update navItems if props change (server-side loaded navigation)
+  useEffect(() => {
+    if (initialNavItems && initialNavItems.length > 0) {
+      setNavItems(initialNavItems);
+    }
+  }, [initialNavItems]);
 
-export function HeaderNav() {
-  const [active, setActive] = useState<string>('');
+  // Fetch navigation items from database only if not provided via props
+  useEffect(() => {
+    if (initialNavItems && initialNavItems.length > 0) {
+      return; // Skip API call if we have server-side navigation
+    }
 
-  const sectionIds = useMemo(() => navItems.map((n) => n.href.replace('#', '')), []);
+    const fetchNavigation = async () => {
+      try {
+        const res = await fetch("/api/admin/content", { cache: "no-store" });
+        const data = await res.json();
+        if (data.navigation && Array.isArray(data.navigation)) {
+          setNavItems(data.navigation);
+        }
+      } catch (error) {
+        console.log("Could not fetch navigation, using defaults");
+      }
+    };
+
+    fetchNavigation();
+  }, [initialNavItems]);
+
+  const sectionIds = useMemo(
+    () => navItems.map((n) => n.href.replace("#", "")),
+    [navItems]
+  );
 
   useEffect(() => {
     let raf = 0 as number | 0;
@@ -23,48 +53,53 @@ export function HeaderNav() {
       if (raf) return;
       raf = requestAnimationFrame(() => {
         raf = 0;
-        const header = document.querySelector('header') as HTMLElement | null;
+        const header = document.querySelector("header") as HTMLElement | null;
         const offset = (header?.offsetHeight ?? 80) + 8; // account for sticky header + small gap
         const positions = sectionIds.map((id) => {
           const el = document.getElementById(id);
-          const top = el ? el.getBoundingClientRect().top - offset : Number.POSITIVE_INFINITY;
+          const top = el
+            ? el.getBoundingClientRect().top - offset
+            : Number.POSITIVE_INFINITY;
           return { id, top };
         });
         // If we are above the first section, clear active
         const allAbove = positions.every((p) => p.top > 0);
         if (allAbove) {
-          setActive('');
+          setActive("");
           return;
         }
         // Choose the last section whose top is <= 0 (closest to top)
         const current = positions
           .filter((p) => p.top <= 0)
           .sort((a, b) => b.top - a.top)[0];
-        if (current) setActive('#' + current.id);
+        if (current) setActive("#" + current.id);
       });
     };
     onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
     return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
       if (raf) cancelAnimationFrame(raf as number);
     };
   }, [sectionIds]);
 
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (!href.startsWith('#')) return;
+  const handleClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    href: string
+  ) => {
+    if (!href.startsWith("#")) return;
     e.preventDefault();
     const id = href.substring(1);
     const el = document.getElementById(id);
     if (!el) return;
-    const header = document.querySelector('header') as HTMLElement | null;
+    const header = document.querySelector("header") as HTMLElement | null;
     const offset = (header?.offsetHeight ?? 80) + 8;
     const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
-    window.scrollTo({ top: y, behavior: 'smooth' });
+    window.scrollTo({ top: y, behavior: "smooth" });
     try {
-      if (typeof history !== 'undefined') history.replaceState(null, '', href);
+      if (typeof history !== "undefined") history.replaceState(null, "", href);
     } catch {}
     setActive(href);
   };
@@ -83,17 +118,13 @@ export function HeaderNav() {
             <span>{item.label}</span>
             <span
               className={
-                'pointer-events-none absolute left-1/2 -bottom-1 h-0.5 w-8 -translate-x-1/2 transform origin-center rounded-full bg-brand-500 transition-transform duration-300 ' +
-                (isActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100')
+                "pointer-events-none absolute left-1/2 -bottom-1 h-0.5 w-8 -translate-x-1/2 transform origin-center rounded-full bg-brand-500 transition-transform duration-300 " +
+                (isActive ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100")
               }
             />
           </Link>
         );
       })}
-      <Link href="/blog" className="group relative py-1 hover:text-white">
-        <span>Blog</span>
-        <span className="pointer-events-none absolute left-1/2 -bottom-1 h-0.5 w-8 -translate-x-1/2 transform origin-center rounded-full bg-brand-500 transition-transform duration-300 group-hover:scale-x-100 scale-x-0" />
-      </Link>
     </nav>
   );
 }

@@ -17,7 +17,11 @@ type SectionKey =
   | "contact"
   | "schema"
   | "settings"
-  | "posts";
+  | "posts"
+  | "wireframe"
+  | "navigation"
+  | "header"
+  | "footer";
 
 const HOME_SECTIONS: { key: SectionKey; label: string }[] = [
   { key: "hero", label: "Hero" },
@@ -2669,6 +2673,73 @@ export default function AdminPage() {
   const [rawText, setRawText] = useState("");
   const [toasts, setToasts] = useState<Toast[]>([]);
 
+  // Initialize tab from URL hash or localStorage
+  useEffect(() => {
+    const initializeTab = () => {
+      // First check URL hash
+      const hash = window.location.hash.slice(1);
+      const validSections: SectionKey[] = [
+        "hero",
+        "marquee",
+        "services",
+        "process",
+        "beliefs",
+        "clients",
+        "clientLogos",
+        "caseStudies",
+        "about",
+        "book",
+        "contact",
+        "schema",
+        "settings",
+        "posts",
+        "wireframe",
+        "navigation",
+        "header",
+        "footer",
+      ];
+
+      if (hash && validSections.includes(hash as SectionKey)) {
+        setTab(hash as SectionKey);
+        return;
+      }
+
+      // Fallback to localStorage
+      try {
+        const savedTab = localStorage.getItem("adminTab");
+        if (savedTab && validSections.includes(savedTab as SectionKey)) {
+          setTab(savedTab as SectionKey);
+          // Update URL hash to match
+          window.history.replaceState(null, "", `#${savedTab}`);
+          return;
+        }
+      } catch (e) {
+        // localStorage not available
+      }
+
+      // Default to hero and update URL
+      setTab("hero");
+      window.history.replaceState(null, "", "#hero");
+    };
+
+    initializeTab();
+  }, []);
+
+  // Update URL hash and localStorage when tab changes
+  const setTabWithPersistence = (newTab: SectionKey) => {
+    setTab(newTab);
+
+    // Update URL hash
+    window.history.replaceState(null, "", `#${newTab}`);
+
+    // Save to localStorage
+    try {
+      localStorage.setItem("adminTab", newTab);
+    } catch (e) {
+      // localStorage not available
+    }
+  };
+
   const pushToast = (
     message: string,
     kind: "success" | "error" | "info" = "info"
@@ -2771,7 +2842,7 @@ export default function AdminPage() {
 
         <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-4">
           <aside className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-white/5">
-            <Sidebar tab={tab} setTab={setTab} />
+            <Sidebar tab={tab} setTab={setTabWithPersistence} />
           </aside>
           <section className="md:col-span-3">
             <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/5">
@@ -2911,19 +2982,54 @@ export default function AdminPage() {
                         onChange={setSection}
                       />
                     )}
+                    {tab === "navigation" && (
+                      <NavigationEditor
+                        value={Array.isArray(sectionValue) ? sectionValue : []}
+                        onChange={setSection}
+                      />
+                    )}
+                    {tab === "header" && (
+                      <HeaderEditor
+                        value={sectionValue}
+                        onChange={setSection}
+                      />
+                    )}
+                    {tab === "footer" && (
+                      <FooterEditor
+                        value={sectionValue}
+                        onChange={setSection}
+                      />
+                    )}
+                    {tab === "wireframe" && (
+                      <WireframeViewer
+                        data={data}
+                        onSectionClick={(section) =>
+                          setTabWithPersistence(section)
+                        }
+                        onDataUpdate={(newData) => setData(newData)}
+                      />
+                    )}
                     {tab === "posts" && <PostsEditor />}
                   </div>
                 )}
               </div>
-              <div className="mt-3 flex items-center gap-3">
-                <button onClick={onSave} disabled={saving} className="btn-cta">
-                  {saving ? "Saving…" : "Save"}
-                </button>
-                {message && (
-                  <span className="text-xs text-green-600">{message}</span>
-                )}
-                {error && <span className="text-xs text-red-600">{error}</span>}
-              </div>
+              {tab !== "wireframe" && tab !== "posts" && (
+                <div className="mt-3 flex items-center gap-3">
+                  <button
+                    onClick={onSave}
+                    disabled={saving}
+                    className="btn-cta"
+                  >
+                    {saving ? "Saving…" : "Save"}
+                  </button>
+                  {message && (
+                    <span className="text-xs text-green-600">{message}</span>
+                  )}
+                  {error && (
+                    <span className="text-xs text-red-600">{error}</span>
+                  )}
+                </div>
+              )}
             </div>
           </section>
         </div>
@@ -2981,9 +3087,62 @@ function Sidebar({
         </li>
       </ul>
       <div className="mt-3 px-2 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400">
+        Layout
+      </div>
+      <ul className="space-y-1 text-sm">
+        <li>
+          <button
+            onClick={() => setTab("header")}
+            className={`w-full rounded-md px-3 py-2 text-left ${
+              tab === "header"
+                ? "bg-brand-500 text-white"
+                : "hover:bg-gray-100 dark:hover:bg-white/10"
+            }`}
+          >
+            Header
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => setTab("footer")}
+            className={`w-full rounded-md px-3 py-2 text-left ${
+              tab === "footer"
+                ? "bg-brand-500 text-white"
+                : "hover:bg-gray-100 dark:hover:bg-white/10"
+            }`}
+          >
+            Footer
+          </button>
+        </li>
+      </ul>
+      <div className="mt-3 px-2 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400">
         Other
       </div>
       <ul className="space-y-1 text-sm">
+        <li>
+          <button
+            onClick={() => setTab("wireframe")}
+            className={`w-full rounded-md px-3 py-2 text-left ${
+              tab === "wireframe"
+                ? "bg-brand-500 text-white"
+                : "hover:bg-gray-100 dark:hover:bg-white/10"
+            }`}
+          >
+            Wireframe
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => setTab("navigation")}
+            className={`w-full rounded-md px-3 py-2 text-left ${
+              tab === "navigation"
+                ? "bg-brand-500 text-white"
+                : "hover:bg-gray-100 dark:hover:bg-white/10"
+            }`}
+          >
+            Navigation
+          </button>
+        </li>
         <li>
           <button
             onClick={() => setTab("schema")}
@@ -3013,10 +3172,712 @@ function Sidebar({
   );
 }
 
+function WireframeViewer({
+  data,
+  onSectionClick,
+  onDataUpdate,
+}: {
+  data: any;
+  onSectionClick: (section: SectionKey) => void;
+  onDataUpdate: (newData: any) => void;
+}) {
+  const [saving, setSaving] = useState(false);
+
+  const sections = [
+    {
+      key: "hero" as SectionKey,
+      label: "Hero Section",
+      description: "Main headline, subhead, stats, and hero image",
+      required: true, // Hero is always required
+    },
+    {
+      key: "marquee" as SectionKey,
+      label: "Capabilities Marquee",
+      description: "Scrolling list of your capabilities",
+      required: false,
+    },
+    {
+      key: "services" as SectionKey,
+      label: "Services",
+      description: "Your service offerings with icons and descriptions",
+      required: false,
+    },
+    {
+      key: "process" as SectionKey,
+      label: "Process/Methodology",
+      description: "Your workflow or system explanation",
+      required: false,
+    },
+    {
+      key: "caseStudies" as SectionKey,
+      label: "Case Studies",
+      description: "Portfolio projects with results",
+      required: false,
+    },
+    {
+      key: "beliefs" as SectionKey,
+      label: "Beliefs/Philosophy",
+      description: "Your company values and beliefs",
+      required: false,
+    },
+    {
+      key: "about" as SectionKey,
+      label: "About Team",
+      description: "Team information and company story",
+      required: false,
+    },
+    {
+      key: "clients" as SectionKey,
+      label: "Client Logos",
+      description: "Trusted client logo carousel",
+      required: false,
+    },
+    {
+      key: "book" as SectionKey,
+      label: "Book a Call CTA",
+      description: "Call-to-action for booking consultations",
+      required: false,
+    },
+    {
+      key: "contact" as SectionKey,
+      label: "Contact",
+      description: "Contact form and company details",
+      required: true, // Contact is always required
+    },
+  ];
+
+  const toggleSectionVisibility = async (
+    sectionKey: SectionKey,
+    visible: boolean
+  ) => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          section: "sectionVisibility",
+          data: {
+            ...((data?.sectionVisibility as any) || {}),
+            [sectionKey]: visible,
+          },
+        }),
+      });
+      const j = await res.json();
+      if (j.ok) {
+        // Update local data to reflect the change immediately
+        const updatedData = {
+          ...data,
+          sectionVisibility: {
+            ...((data?.sectionVisibility as any) || {}),
+            [sectionKey]: visible,
+          },
+        };
+        onDataUpdate(updatedData);
+      }
+    } catch (error) {
+      console.error("Failed to update section visibility:", error);
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/5">
+        <h3 className="text-sm font-medium mb-2">Homepage Structure</h3>
+        <p className="text-xs text-gray-600 dark:text-gray-400">
+          This shows the order and structure of sections on your homepage. Click
+          any section to edit it.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {sections.map((section, index) => {
+          const hasContent = data?.[section.key];
+          const isConfigured =
+            hasContent &&
+            (typeof hasContent === "object"
+              ? Object.keys(hasContent).length > 0
+              : Array.isArray(hasContent)
+              ? hasContent.length > 0
+              : true);
+
+          // Get visibility status (default to true if not set)
+          const sectionVisibility = data?.sectionVisibility || {};
+          const isVisible = sectionVisibility[section.key] !== false;
+
+          return (
+            <div
+              key={section.key}
+              className={`group relative rounded-lg border p-4 transition hover:shadow-sm ${
+                isVisible
+                  ? "border-gray-200 bg-white hover:border-brand-500/30 dark:border-gray-800 dark:bg-white/5 dark:hover:border-brand-500/30"
+                  : "border-gray-300 bg-gray-50 opacity-60 dark:border-gray-700 dark:bg-gray-900/50"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                      {index + 1}
+                    </span>
+                    <h4
+                      className={`font-medium ${
+                        !isVisible ? "line-through" : ""
+                      }`}
+                    >
+                      {section.label}
+                    </h4>
+                    <div
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs ${
+                        isConfigured
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                      }`}
+                    >
+                      <div
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          isConfigured ? "bg-green-500" : "bg-yellow-500"
+                        }`}
+                      />
+                      {isConfigured ? "Configured" : "Default"}
+                    </div>
+                    {!isVisible && (
+                      <div className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                        <div className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                        Hidden
+                      </div>
+                    )}
+                  </div>
+                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    {section.description}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {!section.required && (
+                    <label className="inline-flex items-center gap-2 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={isVisible}
+                        onChange={(e) =>
+                          toggleSectionVisibility(section.key, e.target.checked)
+                        }
+                        disabled={saving}
+                        className="rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600"
+                      />
+                      <span className={saving ? "opacity-50" : ""}>
+                        {isVisible ? "Show" : "Hide"}
+                      </span>
+                    </label>
+                  )}
+                  {section.required && (
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      Required
+                    </span>
+                  )}
+                  <button
+                    onClick={() => onSectionClick(section.key)}
+                    className="btn-secondary text-xs opacity-0 transition group-hover:opacity-100"
+                  >
+                    Edit
+                  </button>
+                </div>
+              </div>
+
+              {/* Visual wireframe representation */}
+              <div className="mt-4 rounded border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/50">
+                <div className="space-y-2">
+                  {section.key === "hero" && (
+                    <div className="space-y-2">
+                      <div className="h-2 w-1/3 rounded bg-brand-500/20"></div>
+                      <div className="h-3 w-2/3 rounded bg-gray-300 dark:bg-gray-600"></div>
+                      <div className="h-2 w-full rounded bg-gray-200 dark:bg-gray-700"></div>
+                      <div className="flex gap-2">
+                        <div className="h-8 w-16 rounded bg-gray-300 dark:bg-gray-600"></div>
+                        <div className="h-8 w-16 rounded bg-gray-300 dark:bg-gray-600"></div>
+                        <div className="h-8 w-16 rounded bg-gray-300 dark:bg-gray-600"></div>
+                      </div>
+                    </div>
+                  )}
+                  {section.key === "marquee" && (
+                    <div className="flex gap-2 overflow-hidden">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <div
+                          key={i}
+                          className="h-6 w-20 flex-shrink-0 rounded bg-gray-300 dark:bg-gray-600"
+                        ></div>
+                      ))}
+                    </div>
+                  )}
+                  {section.key === "services" && (
+                    <div className="grid grid-cols-3 gap-2">
+                      {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <div key={i} className="space-y-1">
+                          <div className="h-6 w-6 rounded bg-brand-500/30"></div>
+                          <div className="h-2 w-full rounded bg-gray-300 dark:bg-gray-600"></div>
+                          <div className="h-1 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {section.key === "process" && (
+                    <div className="space-y-2">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <div className="h-4 w-4 rounded-full bg-brand-500/30"></div>
+                          <div className="h-2 flex-1 rounded bg-gray-300 dark:bg-gray-600"></div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {section.key === "caseStudies" && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {[1, 2].map((i) => (
+                        <div key={i} className="space-y-1">
+                          <div className="aspect-video rounded bg-gray-300 dark:bg-gray-600"></div>
+                          <div className="h-2 w-3/4 rounded bg-gray-300 dark:bg-gray-600"></div>
+                          <div className="flex gap-1">
+                            <div className="h-1 w-8 rounded bg-brand-500/30"></div>
+                            <div className="h-1 w-8 rounded bg-brand-500/30"></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {section.key === "beliefs" && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {[1, 2].map((i) => (
+                        <div
+                          key={i}
+                          className="space-y-1 rounded border border-gray-200 p-2 dark:border-gray-700"
+                        >
+                          <div className="h-2 w-1/2 rounded bg-brand-500/20"></div>
+                          <div className="h-1 w-full rounded bg-gray-200 dark:bg-gray-700"></div>
+                          <div className="h-1 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {section.key === "about" && (
+                    <div className="flex gap-3">
+                      <div className="h-12 w-12 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+                      <div className="flex-1 space-y-1">
+                        <div className="h-2 w-1/2 rounded bg-gray-300 dark:bg-gray-600"></div>
+                        <div className="h-1 w-full rounded bg-gray-200 dark:bg-gray-700"></div>
+                        <div className="h-1 w-2/3 rounded bg-gray-200 dark:bg-gray-700"></div>
+                      </div>
+                    </div>
+                  )}
+                  {section.key === "clients" && (
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <div
+                          key={i}
+                          className="h-8 w-12 rounded bg-gray-300 dark:bg-gray-600"
+                        ></div>
+                      ))}
+                    </div>
+                  )}
+                  {section.key === "book" && (
+                    <div className="rounded border-2 border-brand-500/30 bg-brand-500/5 p-3 text-center">
+                      <div className="mx-auto h-2 w-1/2 rounded bg-brand-500/40"></div>
+                      <div className="mx-auto mt-2 h-6 w-20 rounded bg-brand-500"></div>
+                    </div>
+                  )}
+                  {section.key === "contact" && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <div className="h-1 w-1/2 rounded bg-gray-300 dark:bg-gray-600"></div>
+                        <div className="h-6 w-full rounded border border-gray-300 dark:border-gray-600"></div>
+                        <div className="h-6 w-full rounded border border-gray-300 dark:border-gray-600"></div>
+                        <div className="h-12 w-full rounded border border-gray-300 dark:border-gray-600"></div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="h-2 w-1/2 rounded bg-gray-300 dark:bg-gray-600"></div>
+                        <div className="h-1 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
+                        <div className="h-1 w-1/2 rounded bg-gray-200 dark:bg-gray-700"></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/5">
+        <h3 className="text-sm font-medium mb-3">Quick Actions</h3>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <a
+            href="/"
+            target="_blank"
+            rel="noreferrer"
+            className="btn-secondary"
+          >
+            View Homepage
+          </a>
+          <a
+            href="/blog"
+            target="_blank"
+            rel="noreferrer"
+            className="btn-secondary"
+          >
+            View Blog
+          </a>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/5">
+        <h3 className="text-sm font-medium mb-2">Legend</h3>
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center gap-2">
+            <div className="h-3 w-3 rounded-full bg-green-500"></div>
+            <span>Configured - Content has been customized</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
+            <span>Default - Using template content</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NavigationEditor({
+  value,
+  onChange,
+}: {
+  value: any[];
+  onChange: (v: any[]) => void;
+}) {
+  const list = Array.isArray(value)
+    ? value
+    : [
+        { href: "/#services", label: "Services" },
+        { href: "/#process", label: "Process" },
+        { href: "/#case-studies", label: "Case Studies" },
+        { href: "/#about", label: "About" },
+        { href: "/blog", label: "Blog" },
+        { href: "/#contact", label: "Contact" },
+      ];
+
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
+
+  const onDragStart = (idx: number, e: React.DragEvent) => {
+    setDragIdx(idx);
+    e.dataTransfer.effectAllowed = "move";
+    try {
+      e.dataTransfer.setData("text/plain", String(idx));
+    } catch {}
+  };
+
+  const onDragOver = (idx: number, e: React.DragEvent) => {
+    e.preventDefault();
+    if (overIdx !== idx) setOverIdx(idx);
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const onDrop = (idx: number, e: React.DragEvent) => {
+    e.preventDefault();
+    const from = dragIdx ?? Number(e.dataTransfer.getData("text/plain"));
+    const to = idx;
+    setDragIdx(null);
+    setOverIdx(null);
+    if (Number.isFinite(from) && Number.isFinite(to) && from !== to) {
+      const next = [...list];
+      const [moved] = next.splice(from as number, 1);
+      next.splice(to, 0, moved);
+      onChange(next);
+    }
+  };
+
+  const onDragEnd = () => {
+    setDragIdx(null);
+    setOverIdx(null);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/5">
+        <h3 className="text-sm font-medium mb-2">Header Navigation Menu</h3>
+        <p className="text-xs text-gray-600 dark:text-gray-400">
+          Customize the navigation menu items that appear in the header. Drag to
+          reorder, edit labels and links.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {list.map((item, i) => (
+          <div
+            key={i}
+            draggable
+            onDragStart={(e) => onDragStart(i, e)}
+            onDragOver={(e) => onDragOver(i, e)}
+            onDrop={(e) => onDrop(i, e)}
+            onDragEnd={onDragEnd}
+            className={
+              (overIdx === i ? "border-brand-500 bg-brand-500/5 " : "") +
+              "grid grid-cols-2 gap-2 rounded-md border border-gray-200 p-3 dark:border-gray-800"
+            }
+          >
+            <div className="col-span-2 -mb-1 flex items-center gap-2 text-xs text-gray-500">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-gray-400"
+              >
+                <path d="M8 6h.01M12 6h.01M16 6h.01M8 12h.01M12 12h.01M16 12h.01M8 18h.01M12 18h.01M16 18h.01" />
+              </svg>
+              Drag to reorder
+            </div>
+            <TextInput
+              placeholder="Label"
+              value={item.label || ""}
+              onChange={(e) => {
+                const arr = [...list];
+                arr[i] = { ...arr[i], label: e.target.value };
+                onChange(arr);
+              }}
+            />
+            <TextInput
+              placeholder="Link (/#section or /page)"
+              value={item.href || ""}
+              onChange={(e) => {
+                const arr = [...list];
+                arr[i] = { ...arr[i], href: e.target.value };
+                onChange(arr);
+              }}
+            />
+            <div className="col-span-2 flex justify-end">
+              <IconButton
+                title="Remove"
+                onClick={() => onChange(list.filter((_, idx) => idx !== i))}
+              >
+                Remove
+              </IconButton>
+            </div>
+          </div>
+        ))}
+
+        <IconButton
+          title="Add"
+          onClick={() => onChange([...list, { href: "", label: "" }])}
+        >
+          Add menu item
+        </IconButton>
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/5">
+        <h3 className="text-sm font-medium mb-2">Link Examples</h3>
+        <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+          <div>
+            <strong>Section links:</strong> /#services, /#about, /#contact
+          </div>
+          <div>
+            <strong>Page links:</strong> /blog, /custom-page
+          </div>
+          <div>
+            <strong>External links:</strong> https://example.com
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HeaderEditor({
+  value,
+  onChange,
+}: {
+  value: any;
+  onChange: (v: any) => void;
+}) {
+  const v = value || {};
+  const up = (k: string, val: any) => onChange({ ...v, [k]: val });
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/5">
+        <h3 className="text-sm font-medium mb-2">Header Settings</h3>
+        <p className="text-xs text-gray-600 dark:text-gray-400">
+          Customize the header appearance and call-to-action button.
+        </p>
+      </div>
+
+      <Field label="Call-to-Action Button Text">
+        <TextInput
+          value={v.ctaText || "Book a call"}
+          onChange={(e) => up("ctaText", e.target.value)}
+          placeholder="Book a call"
+        />
+      </Field>
+
+      <Field label="Call-to-Action Button URL">
+        <TextInput
+          value={v.ctaUrl || ""}
+          onChange={(e) => up("ctaUrl", e.target.value)}
+          placeholder="https://calendly.com/your-link"
+        />
+      </Field>
+
+      <Field label="Logo Alt Text">
+        <TextInput
+          value={v.logoAlt || "Your Agency"}
+          onChange={(e) => up("logoAlt", e.target.value)}
+          placeholder="Your Agency"
+        />
+      </Field>
+
+      <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/5">
+        <h3 className="text-sm font-medium mb-2">Note</h3>
+        <p className="text-xs text-gray-600 dark:text-gray-400">
+          Logo and navigation are managed in Settings and Navigation sections
+          respectively.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function FooterEditor({
+  value,
+  onChange,
+}: {
+  value: any;
+  onChange: (v: any) => void;
+}) {
+  const v = value || {};
+  const up = (k: string, val: any) => onChange({ ...v, [k]: val });
+  const footerLinks: any[] = Array.isArray(v.footerLinks)
+    ? v.footerLinks
+    : [
+        { href: "#services", label: "Services" },
+        { href: "#process", label: "Process" },
+        { href: "#case-studies", label: "Case Studies" },
+        { href: "#about", label: "About" },
+        { href: "#contact", label: "Contact" },
+      ];
+  const socialLinks: any[] = Array.isArray(v.socialLinks)
+    ? v.socialLinks
+    : [
+        { href: "#", label: "Instagram", icon: "instagram" },
+        { href: "#", label: "LinkedIn", icon: "linkedin" },
+        { href: "#", label: "Email", icon: "email" },
+      ];
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/5">
+        <h3 className="text-sm font-medium mb-2">Footer Settings</h3>
+        <p className="text-xs text-gray-600 dark:text-gray-400">
+          Customize footer content, links, and company information.
+        </p>
+      </div>
+
+      <Field label="Company Name">
+        <TextInput
+          value={v.companyName || "Your Agency"}
+          onChange={(e) => up("companyName", e.target.value)}
+          placeholder="Your Agency"
+        />
+      </Field>
+
+      <Field label="Company Description">
+        <Textarea
+          rows={2}
+          value={
+            v.companyDescription ||
+            "Professional web solutions for growing businesses."
+          }
+          onChange={(e) => up("companyDescription", e.target.value)}
+          placeholder="Professional web solutions for growing businesses."
+        />
+      </Field>
+
+      <Field label="Copyright Text">
+        <TextInput
+          value={v.copyrightText || "Your Agency"}
+          onChange={(e) => up("copyrightText", e.target.value)}
+          placeholder="Your Agency"
+        />
+      </Field>
+
+      <div className="space-y-2">
+        <Label>Footer Navigation Links</Label>
+        {footerLinks.map((link, i) => (
+          <div key={i} className="grid grid-cols-2 gap-2">
+            <TextInput
+              placeholder="Label"
+              value={link.label || ""}
+              onChange={(e) => {
+                const arr = [...footerLinks];
+                arr[i] = { ...arr[i], label: e.target.value };
+                up("footerLinks", arr);
+              }}
+            />
+            <TextInput
+              placeholder="Link"
+              value={link.href || ""}
+              onChange={(e) => {
+                const arr = [...footerLinks];
+                arr[i] = { ...arr[i], href: e.target.value };
+                up("footerLinks", arr);
+              }}
+            />
+            <div className="col-span-2 flex justify-end">
+              <IconButton
+                title="Remove"
+                onClick={() =>
+                  up(
+                    "footerLinks",
+                    footerLinks.filter((_, idx) => idx !== i)
+                  )
+                }
+              >
+                Remove
+              </IconButton>
+            </div>
+          </div>
+        ))}
+        <IconButton
+          title="Add"
+          onClick={() =>
+            up("footerLinks", [...footerLinks, { href: "", label: "" }])
+          }
+        >
+          Add footer link
+        </IconButton>
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/5">
+        <h3 className="text-sm font-medium mb-2">Contact Information</h3>
+        <div className="text-xs text-gray-600 dark:text-gray-400">
+          Email, phone, and social media links are managed in the{" "}
+          <strong>Contact</strong> section. The footer will automatically
+          display the contact information you set there.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function getSectionLabel(tab: SectionKey): string {
   const home = HOME_SECTIONS.find((s) => s.key === tab)?.label;
   if (home) return home;
   if (tab === "posts") return "Posts";
+  if (tab === "wireframe") return "Homepage Wireframe";
+  if (tab === "navigation") return "Navigation Menu";
+  if (tab === "header") return "Header Settings";
+  if (tab === "footer") return "Footer Settings";
   if (tab === "schema") return "Schema (JSON‑LD)";
   if (tab === "settings") return "Settings";
   return String(tab);

@@ -187,6 +187,23 @@ INSERT INTO sections (id, data) VALUES (
     ]
   }'::jsonb
 );
+
+-- Insert default section visibility (all sections visible by default)
+INSERT INTO sections (id, data) VALUES (
+  'sectionVisibility',
+  '{
+    "hero": true,
+    "marquee": true,
+    "services": true,
+    "process": true,
+    "caseStudies": true,
+    "beliefs": true,
+    "about": true,
+    "clients": true,
+    "book": true,
+    "contact": true
+  }'::jsonb
+);
 ```
 
 ## Environment Variables Setup
