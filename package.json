@@ -1,7 +1,17 @@
 {
-  "name": "farbox-clone",
-  "version": "0.1.0",
+  "name": "agency-website-template",
+  "version": "1.0.0",
   "private": true,
+  "description": "A modern agency website template built with Next.js and Tailwind CSS",
+  "keywords": [
+    "nextjs",
+    "tailwind",
+    "agency",
+    "website",
+    "template",
+    "cms",
+    "blog"
+  ],
   "scripts": {
     "dev": "next dev --turbo",
     "build": "next build",

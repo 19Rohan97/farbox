@@ -1344,6 +1344,51 @@ function SettingsEditor({
 }) {
   const v = value || {};
   const up = (k: string, val: any) => onChange({ ...v, [k]: val });
+
+  // Color scheme presets
+  const colorPresets = [
+    {
+      name: "Orange (Default)",
+      value: "#f24711",
+      description: "Vibrant orange - great for creative agencies",
+    },
+    {
+      name: "Blue",
+      value: "#3b82f6",
+      description: "Professional blue - trusted and reliable",
+    },
+    {
+      name: "Green",
+      value: "#10b981",
+      description: "Fresh green - perfect for eco/health brands",
+    },
+    {
+      name: "Purple",
+      value: "#8b5cf6",
+      description: "Modern purple - tech and innovation focused",
+    },
+    {
+      name: "Red",
+      value: "#ef4444",
+      description: "Bold red - high energy and attention-grabbing",
+    },
+    {
+      name: "Teal",
+      value: "#14b8a6",
+      description: "Sophisticated teal - modern and professional",
+    },
+    {
+      name: "Pink",
+      value: "#ec4899",
+      description: "Creative pink - design and lifestyle brands",
+    },
+    {
+      name: "Indigo",
+      value: "#6366f1",
+      description: "Deep indigo - premium and trustworthy",
+    },
+  ];
+
   return (
     <div className="space-y-3">
       <Field label="Site logo URL">
@@ -1362,6 +1407,68 @@ function SettingsEditor({
       <div className="text-xs text-gray-600 dark:text-gray-400">
         This controls the logo in the header. Save and refresh the site to see
         it update.
+      </div>
+
+      <hr className="my-4 border-gray-200 dark:border-gray-800" />
+
+      <div className="space-y-3">
+        <div className="text-sm font-medium">Brand Colors</div>
+        <Field label="Primary Brand Color">
+          <div className="flex items-center gap-2">
+            <TextInput
+              type="color"
+              value={v.brandColor || "#f24711"}
+              onChange={(e) => up("brandColor", e.target.value)}
+              className="w-16 h-10 p-1 cursor-pointer"
+            />
+            <TextInput
+              value={v.brandColor || "#f24711"}
+              onChange={(e) => up("brandColor", e.target.value)}
+              placeholder="#f24711"
+              className="flex-1"
+            />
+          </div>
+        </Field>
+
+        <div className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+          Choose a color that represents your brand. This will be used for
+          buttons, links, and accent elements throughout the site.
+        </div>
+
+        <div>
+          <Label>Color Presets</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+            {colorPresets.map((preset) => (
+              <button
+                key={preset.value}
+                type="button"
+                onClick={() => up("brandColor", preset.value)}
+                className={`flex items-center gap-3 p-3 rounded-lg border text-left transition hover:bg-gray-50 dark:hover:bg-white/5 ${
+                  (v.brandColor || "#f24711") === preset.value
+                    ? "border-gray-400 bg-gray-50 dark:border-gray-600 dark:bg-white/5"
+                    : "border-gray-200 dark:border-gray-800"
+                }`}
+              >
+                <div
+                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600 flex-shrink-0"
+                  style={{ backgroundColor: preset.value }}
+                />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">{preset.name}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {preset.description}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-md border border-gray-200 p-3 text-xs text-gray-600 dark:border-gray-800 dark:text-gray-300">
+          <strong>Note:</strong> Color changes will be visible immediately in
+          the admin panel. To see changes on the main site, you'll need to
+          refresh the page after saving.
+        </div>
       </div>
       <div className="pt-2">
         <Field label="Favicon URL (.ico, .png)">
@@ -1580,9 +1687,9 @@ function PostsEditor() {
     if (!current) return;
     setSaving(true);
     // Normalize common path typos and shapes before save
-    const normalizedAudio = (current.audio_url || '').startsWith('/upload/')
-      ? (current.audio_url || '').replace(/^\/upload\//, '/uploads/')
-      : current.audio_url || '';
+    const normalizedAudio = (current.audio_url || "").startsWith("/upload/")
+      ? (current.audio_url || "").replace(/^\/upload\//, "/uploads/")
+      : current.audio_url || "";
     const payload = {
       ...current,
       audio_url: normalizedAudio || undefined,
@@ -2622,6 +2729,21 @@ export default function AdminPage() {
     pushToast("Saved successfully", "success");
     setData((prev: any) => ({ ...(prev || {}), [tab]: payload }));
     setRawText(JSON.stringify(payload, null, 2));
+
+    // If we saved settings with a brand color, trigger a refresh on the main site
+    if (tab === "settings" && payload.brandColor) {
+      try {
+        // Use localStorage to signal color change to main site
+        localStorage.setItem("brandColorUpdate", Date.now().toString());
+        // Also update the CSS custom property immediately in admin panel
+        document.documentElement.style.setProperty(
+          "--brand-500",
+          payload.brandColor
+        );
+      } catch (e) {
+        // localStorage might not be available in some contexts
+      }
+    }
   };
 
   const sectionValue = useMemo(() => (data || {})[tab] ?? {}, [data, tab]);

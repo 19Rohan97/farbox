@@ -1,141 +1,241 @@
 export const site = {
-  logoUrl: "/farbox-logo.png",
-  tidycal: "https://tidycal.com/mpkwol1/30-minute-meeting",
+  logoUrl: "/logo.png",
+  tidycal: "https://tidycal.com/your-booking-link",
   hero: {
-    title: "Finely Crafted Websites",
-    subhead: "For Serious Businesses.",
-    body: "Here we care about the story behind the site. We don’t do high volume work, we take the time to sit with each project and craft it into your voice.",
-    image: "/images/hero-man.webp",
+    title: "Professional Web Solutions",
+    subhead: "For Growing Businesses.",
+    body: "We create custom websites and digital experiences that help your business stand out. Our team focuses on quality, performance, and results that matter to your bottom line.",
+    image: "/images/hero-graphic.svg",
     stats: [
-      { value: "10+ yrs", label: "Experience" },
-      { value: "120+", label: "Projects shipped" },
-      { value: "5", label: "Clients at a time" },
-      { value: "AU", label: "Based in Australia" },
-    ]
+      { value: "5+ yrs", label: "Experience" },
+      { value: "50+", label: "Projects delivered" },
+      { value: "10", label: "Active clients" },
+      { value: "Global", label: "Remote team" },
+    ],
   },
   marquee: [
-    "Custom Development",
-    "Bespoke Design",
+    "Web Development",
+    "Custom Design",
     "E‑commerce",
     "Performance",
     "Security",
     "Mobile‑first",
-    "Product Development",
-    "Podcast Production",
+    "Digital Strategy",
+    "Content Management",
     "SEO & Analytics",
-    "Shopify",
-    "Headless CMS",
+    "Brand Identity",
+    "User Experience",
   ],
   services: {
-    title: "What we can offer",
-    subtitle: "Our team specialises in Custom Development and bespoke designs that solve business problems.",
-    note: "Whether the project is large or small, we build every site with an emphasis on speed, security, and mobile usage in mind.",
+    title: "What we offer",
+    subtitle:
+      "Our team specializes in web development and digital solutions that drive business growth.",
+    note: "Whether you need a simple website or a complex web application, we build every project with performance, security, and user experience in mind.",
     items: [
-      { icon: "UX", title: "Design", description: "Brand-aligned UI/UX and visual systems for web." },
-      { icon: "DEV", title: "Development", description: "Custom builds, performance, security and maintainability." },
-      { icon: "PROD", title: "Product", description: "From discovery to product design and prototyping." },
-      { icon: "POD", title: "Content & Podcast", description: "Production support for content and podcasts." },
-      { icon: "SHOP", title: "E‑commerce", description: "Shopify/Headless builds and conversions." },
-      { icon: "SEO", title: "SEO & Analytics", description: "Technical SEO, analytics setup and audits." },
-    ]
+      {
+        icon: "DESIGN",
+        title: "Web Design",
+        description:
+          "Modern, responsive designs that convert visitors into customers.",
+      },
+      {
+        icon: "DEV",
+        title: "Development",
+        description:
+          "Custom websites and web applications built with modern technologies.",
+      },
+      {
+        icon: "ECOM",
+        title: "E-commerce",
+        description:
+          "Online stores that drive sales and provide great shopping experiences.",
+      },
+      {
+        icon: "SEO",
+        title: "SEO & Marketing",
+        description:
+          "Search optimization and digital marketing to grow your online presence.",
+      },
+      {
+        icon: "BRAND",
+        title: "Branding",
+        description:
+          "Logo design and brand identity that makes your business memorable.",
+      },
+      {
+        icon: "SUPPORT",
+        title: "Support & Maintenance",
+        description:
+          "Ongoing support to keep your website secure and up-to-date.",
+      },
+    ],
   },
   process: {
-    title: "The Farbox System",
-    intro: "We offer a range of web services, ranging from design & development to product development and podcast production services.",
+    title: "Our Process",
+    intro:
+      "We follow a proven methodology to deliver exceptional results for every project, from initial concept to final launch.",
     steps: [
-      { title: "1. Discover", description: "Understand the human element and business context." },
-      { title: "2. Design", description: "Translate insight into clear, on-brand experiences." },
-      { title: "3. Develop", description: "Engineer fast, secure, mobile‑first websites." },
-      { title: "4. Deploy", description: "Ship, measure, and iterate with care." }
-    ]
+      {
+        title: "1. Discovery",
+        description: "Understanding your business goals and target audience.",
+      },
+      {
+        title: "2. Strategy",
+        description: "Creating a roadmap for your project's success.",
+      },
+      {
+        title: "3. Design",
+        description: "Crafting beautiful, user-friendly interfaces.",
+      },
+      {
+        title: "4. Development",
+        description: "Building fast, secure, and scalable solutions.",
+      },
+      {
+        title: "5. Launch",
+        description: "Deploying your project and monitoring performance.",
+      },
+    ],
   },
   beliefs: [
-    { title: "Contrarian Belief #1", quote: "We hire for character first. Everything else second." },
-    { title: "Contrarian Belief #2", quote: "We never work for clients just because they have money. Our values must align." }
+    {
+      title: "Our Philosophy #1",
+      quote:
+        "Quality over quantity. We'd rather do fewer projects exceptionally well than many projects poorly.",
+    },
+    {
+      title: "Our Philosophy #2",
+      quote:
+        "Transparency builds trust. We keep our clients informed every step of the way.",
+    },
   ],
   clients: {
-    title: "Our Clients",
-    items: ["Twinings", "Liberty IT", "SBSB", "JBT", "TSA", "RLA", "NGV", "Monash"]
+    title: "Trusted By",
+    items: [
+      "Tech Startups",
+      "Local Businesses",
+      "E-commerce Brands",
+      "Professional Services",
+      "Non-profits",
+      "Creative Agencies",
+    ],
   },
   clientLogos: [
-    { src: "/logos/twinings.jpg", alt: "Twinings" },
-    { src: "/logos/libertyit.jpg", alt: "Liberty IT" },
-    { src: "/logos/sbsb.jpg", alt: "SBSB" },
-    { src: "/logos/jbt.jpg", alt: "JBT" },
-    { src: "/logos/exchange-stores.jpg", alt: "Exchange Stores" },
+    { src: "/logos/client-1.jpg", alt: "Client 1" },
+    { src: "/logos/client-2.jpg", alt: "Client 2" },
+    { src: "/logos/client-3.jpg", alt: "Client 3" },
+    { src: "/logos/client-4.jpg", alt: "Client 4" },
+    { src: "/logos/client-5.jpg", alt: "Client 5" },
   ],
   work: {
-    title: "Selected work",
-    subtitle: "A snapshot of recent projects.",
+    title: "Featured Work",
+    subtitle: "A selection of recent projects we're proud of.",
     projects: [
-      { title: "Aurora Skincare", category: "E‑commerce", image: "/images/project-1.svg" },
-      { title: "Nimbus Finance", category: "Product", image: "/images/project-2.svg" },
-      { title: "Locale Cafe", category: "Hospitality", image: "/images/project-3.svg" },
-      { title: "Cinder Wines", category: "Brand", image: "/images/project-4.svg" },
-      { title: "Atlas Outdoors", category: "Campaign", image: "/images/project-5.svg" },
-      { title: "Sora Energy", category: "B2B", image: "/images/project-6.svg" },
-    ]
+      {
+        title: "TechStart Platform",
+        category: "SaaS",
+        image: "/images/project-1.svg",
+      },
+      {
+        title: "Local Restaurant",
+        category: "Hospitality",
+        image: "/images/project-2.svg",
+      },
+      {
+        title: "Fashion Boutique",
+        category: "E‑commerce",
+        image: "/images/project-3.svg",
+      },
+      {
+        title: "Consulting Firm",
+        category: "Professional Services",
+        image: "/images/project-4.svg",
+      },
+      {
+        title: "Creative Portfolio",
+        category: "Portfolio",
+        image: "/images/project-5.svg",
+      },
+      {
+        title: "Non-profit Initiative",
+        category: "Non-profit",
+        image: "/images/project-6.svg",
+      },
+    ],
   },
   caseStudies: {
     title: "Case Studies",
-    intro: "A closer look at how we solve problems and ship results.",
+    intro:
+      "Real results from real projects. See how we've helped businesses achieve their goals.",
     items: [
       {
-        slug: "nundle-inland-nsw-tourism",
-        title: "Nundle (Inland NSW Tourism)",
-        category: "Tourism / Community",
-        summary: "We built a strong web presence to clearly communicate Nundle’s value proposition and followed up with an online marketing campaign to increase targeted traffic.",
-        image: "/case/nundle-hero.jpg",
+        slug: "ecommerce-redesign",
+        title: "E-commerce Store Redesign",
+        category: "E-commerce",
+        summary:
+          "Complete redesign and development of an online store, resulting in improved user experience and increased conversions.",
+        image: "/case/ecommerce-hero.jpg",
         results: [
-          "Regional revenue up by $1.5M",
-          "Increased targeted traffic",
-          "Ongoing upgrades and advisory"
+          "40% increase in conversion rate",
+          "60% improvement in page load speed",
+          "25% increase in average order value",
         ],
-        link: "https://www.farbox.com.au/project/nundle-inland-nsw-tourism/"
+        link: "#",
       },
       {
-        slug: "dummy-case-study",
-        title: "Dummy Case Study",
-        category: "Campaign",
-        summary: "We built a strong web presence to clearly communicate Nundle’s value proposition and followed up with an online marketing campaign to increase targeted traffic.",
-        image: "/case/nundle-hero.jpg",
+        slug: "saas-platform-launch",
+        title: "SaaS Platform Launch",
+        category: "Technology",
+        summary:
+          "Built a complete SaaS platform from the ground up, including user dashboard, payment integration, and admin panel.",
+        image: "/case/saas-hero.jpg",
         results: [
-          "Regional revenue up by $1.5M",
-          "Increased targeted traffic",
-          "Ongoing upgrades and advisory"
+          "Successful launch to 1000+ users",
+          "99.9% uptime in first 6 months",
+          "Positive user feedback and reviews",
         ],
-        link: "https://www.farbox.com.au/project/nundle-inland-nsw-tourism/"
-      }
-    ]
+        link: "#",
+      },
+    ],
   },
   about: {
-    title: "About us",
-    body: "We are a multidisciplinary team of Designers and engineers who know the value of story, excellence and the art of long-lasting partnerships.",
+    title: "About Our Team",
+    body: "We're a dedicated team of designers and developers passionate about creating digital experiences that make a difference. We believe in the power of good design and clean code to transform businesses.",
     highlights: [
-      "Senior-only team; no handovers",
-      "Direct access to designers and engineers",
+      "Experienced team of professionals",
+      "Direct communication with project leads",
       "Transparent pricing and timelines",
-      "Remote-friendly with on-site options",
+      "Flexible remote and on-site collaboration",
     ],
-    clients: ["Twinings", "Liberty IT", "SBSB", "JBT", "TSA", "RLA"],
-    ceoNote: "I have been doing this for a long time (multiple lifetimes if you count in internet years) and I have learned that building the right team is the difference between achieving an acceptable result and knocking the ball out of the park.",
-    ceoName: "Luke Farrugia",
-    ceoTitle: "CEO, Farbox Creative",
-    photo: "/about/luke.jpg"
+    clients: [
+      "Startups",
+      "SMBs",
+      "Enterprise",
+      "Non-profits",
+      "Creative Agencies",
+      "Professional Services",
+    ],
+    ceoNote:
+      "Building great websites isn't just about code and design—it's about understanding your business and creating solutions that help you succeed. That's what drives us every day.",
+    ceoName: "Your Name",
+    ceoTitle: "Founder & Lead Developer",
+    photo: "/about/team-photo.jpg",
   },
   book: {
-    title: "Book a call",
+    title: "Ready to Start?",
     paragraphs: [
-      "We only work with 5 clients at a time, so we can fully invest in each of them. If that sounds like the level of commitment you want from a service provider, send us a message. If all spots are currently taken we can still explore your needs and add you to the waiting list."
-    ]
+      "We're selective about the projects we take on to ensure we can deliver exceptional results for every client. If you're looking for a partner who cares about your success as much as you do, let's talk.",
+      "Schedule a free consultation to discuss your project and see if we're a good fit.",
+    ],
   },
   contact: {
-    email: "hello@yourstudio.com",
-    phone: "0405 112 906",
-    location: "Australia",
+    email: "hello@youragency.com",
+    phone: "+1 (555) 123-4567",
+    location: "Remote / Global",
     socials: [
+      { label: "LinkedIn", href: "#" },
+      { label: "Twitter", href: "#" },
       { label: "Instagram", href: "#" },
-      { label: "LinkedIn", href: "#" }
-    ]
-  }
+    ],
+  },
 } as const;

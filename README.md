@@ -1,6 +1,6 @@
-# Farbox Clone — Next.js + Tailwind
+# Agency Website Template — Next.js + Tailwind
 
-A clean, modern recreation of farbox.com.au built with Next.js (App Router) and Tailwind CSS. It includes the core marketing sections, dark mode, brand accents, animated shape backdrops, a mobile bottom nav, and content centralized in a single config.
+A clean, modern agency website template built with Next.js (App Router) and Tailwind CSS. Perfect for web agencies, freelancers, and digital studios. Features a complete content management system, blog, dark mode, and professional design components.
 
 ## Quick Start
 
@@ -21,50 +21,111 @@ A clean, modern recreation of farbox.com.au built with Next.js (App Router) and 
 - `app/` — App Router pages and global styles
   - `app/layout.tsx` — global layout (header, footer, dark mode classes)
   - `app/page.tsx` — homepage composition
+  - `app/admin/` — admin panel for content management
+  - `app/blog/` — blog system with dynamic routing
+  - `app/api/` — API routes for admin functionality
   - `app/globals.css` — Tailwind layers, global utilities, animations
 - `components/` — UI components
-  - `Header.tsx`, `HeaderNav.tsx`, `MobileNav.tsx` — top nav with scroll‑spy + bottom mobile nav
+  - `Header.tsx`, `HeaderNav.tsx`, `MobileNav.tsx` — navigation components
   - `Hero.tsx`, `Services.tsx`, `Process.tsx`, `CaseStudies.tsx`, `About.tsx`, `Belief.tsx`, `BookCall.tsx`, `Contact.tsx`
   - `Container.tsx` — page container
-  - `ShapesBackdrop.tsx` — reusable animated brand shapes behind images/cards
-  - `Reveal.tsx` — simple reveal‑on‑scroll helper
-- `content/site.ts` — site copy, links, lists (edit here to customize)
-- `public/` — static assets (logos, images)
+  - `ShapesBackdrop.tsx` — reusable animated brand shapes
+  - `Reveal.tsx` — reveal-on-scroll animations
+  - `Markdown.tsx` — markdown rendering for blog posts
+- `content/site.ts` — default site content (customize for your agency)
+- `public/` — static assets (logos, images, uploads)
+- `utils/supabase/` — database integration for dynamic content
 
 ## Features
 
-- App Router (Next 14), TypeScript, Tailwind 3
-- Dark mode toggle (class‑based, persisted) with light as default
-- Brand color: `#f24711` (from the Farbox site)
-- Sections matching Farbox content:
-  - Hero with brand chip and stat cards
-  - Marquee of capabilities under Hero
-  - Services with icons and supporting visual
-  - The Farbox System (2‑column, interactive preview panel)
-  - Case Studies (alternating layout, real example: Nundle)
-  - Beliefs with glass card styling
-  - About with photo, highlights, CEO quote
-  - Featured Call to Action (brand‑tinted card)
-  - Contact with form (left) and details/socials (right)
-- Bottom app‑style mobile nav with smooth scroll and active highlighting
-- Subtle animated shape backdrops and section reveals
+### Core Technology
+
+- **Next.js 14** with App Router and TypeScript
+- **Tailwind CSS 3** with custom design system
+- **Supabase** integration for dynamic content (optional)
+- **Framer Motion** for smooth animations
+- **Vercel Analytics** for performance tracking
+
+### Content Management
+
+- **Admin Panel** (`/admin`) with Basic Auth protection
+- **Dynamic Content Editing** for all site sections
+- **Blog System** with markdown support and media uploads
+- **Image Upload System** (Supabase Storage or local fallback)
+- **SEO Management** with JSON-LD schema generation
+
+### Design & UX
+
+- **Dark Mode** toggle with system preference detection
+- **Responsive Design** with mobile-first approach
+- **Custom Brand Colors** easily configurable
+- **Animated Components** with reveal-on-scroll effects
+- **Professional Sections**:
+  - Hero with customizable stats
+  - Services showcase
+  - Process/methodology display
+  - Case studies with results
+  - Team/about section
+  - Contact form and details
+  - Client logo marquee
+
+### Performance & SEO
+
+- **Static Site Generation** for optimal performance
+- **Dynamic Metadata** generation
+- **Sitemap & Robots.txt** auto-generation
+- **Image Optimization** with Next.js Image component
+- **Accessibility** features and semantic HTML
 
 ## Customization
 
-- Core content: `content/site.ts`
-  - `logoUrl`, `tidycal` (booking), `hero`, `services`, `process`, `beliefs`
-  - `clientLogos` for the logo slider
-  - `caseStudies` list (title, category, summary, image, results, link)
-  - `about` (photo, highlights, CEO note)
-  - `book` (CTA copy) and `contact` (email, phone, socials)
-- Brand color: `tailwind.config.js` → `theme.extend.colors.brand.500`
-- Fonts: `app/layout.tsx` loads Montserrat via `next/font/google`
+### Quick Setup
 
-## Adding Case Studies
+1. **Update Content**: Edit `content/site.ts` with your agency information
+2. **Brand Colors**: Modify `tailwind.config.js` → `theme.extend.colors.brand.500`
+3. **Logo & Images**: Replace files in `public/` directory
+4. **Contact Info**: Update email, phone, and social links
+5. **Services**: Customize your service offerings and descriptions
 
-- Add another entry to `content/site.ts` under `caseStudies.items`:
-  - `slug`, `title`, `category`, `summary`, `image` (place under `public/`), `results[]`, `link`
-- The list renders on the homepage with alternating columns automatically.
+### Content Structure
+
+- `hero` — Main headline, stats, and hero image
+- `services` — Your service offerings with descriptions
+- `process` — Your methodology/workflow
+- `caseStudies` — Portfolio projects with results
+- `about` — Team information and company story
+- `contact` — Contact details and social links
+- `clientLogos` — Client logo carousel
+
+### Advanced Customization
+
+- **Admin Panel**: Access `/admin` to edit content dynamically
+- **Blog Setup**: Add posts through the admin interface
+- **SEO Settings**: Configure metadata and schema markup
+- **Upload System**: Set up Supabase for media uploads (optional)
+
+## Content Management
+
+### Static Content (Default)
+
+Edit `content/site.ts` to customize your agency's information. This serves as the fallback content and initial setup.
+
+### Dynamic Content (Optional)
+
+Set up Supabase for live content editing:
+
+1. Create a Supabase project
+2. Add environment variables (see below)
+3. Access `/admin` to edit content in real-time
+4. Upload images and manage blog posts
+
+### Blog System
+
+- Create posts through the admin panel
+- Supports markdown content with syntax highlighting
+- Audio/video embedding for podcasts
+- Tag system and SEO optimization
+- Automatic table of contents generation
 
 ## Assets
 
@@ -76,25 +137,88 @@ A clean, modern recreation of farbox.com.au built with Next.js (App Router) and 
 - Vercel (recommended): push to a repo and import into Vercel
 - Any Node host: `npm run build` then `npm start`
 
-### Production uploads (audio/video/images)
+### Environment Variables
 
-Admin uploads use Supabase Storage in production. Configure the following env vars and create a public bucket named `uploads`:
+For full functionality, create a `.env.local` file:
 
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+```env
+# Supabase Configuration (Optional - for dynamic content)
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
-Notes:
-- The upload API returns a public Supabase URL like `https://<project>.supabase.co/storage/v1/object/public/uploads/admin/<filename>`.
-- In development (no Supabase envs), files are written to `public/uploads` and served at `/uploads/<filename>`.
-- In production without Supabase configured, uploads are intentionally blocked to avoid returning non-persistent `/uploads/...` URLs.
+# Admin Panel Authentication
+ADMIN_USER=your_admin_username
+ADMIN_PASS=your_admin_password
+```
 
-## Notes
+**Supabase Setup** (Optional):
 
-- The contact form is UI‑only. Hook up an API route or a service (Resend/SendGrid) for submissions.
-- Smooth scrolling accounts for sticky header height and updates the hash.
-- All major visuals are dark‑mode aware; adjust per section if needed.
+1. Create a Supabase project
+2. Create a public storage bucket named `uploads`
+3. Set up the required database tables (see documentation)
+4. Add your credentials to `.env.local`
+
+**Without Supabase**: The site works perfectly with static content from `content/site.ts`
+
+## Getting Started
+
+1. **Clone and Install**:
+
+   ```bash
+   git clone <your-repo>
+   cd agency-website
+   npm install
+   ```
+
+2. **Customize Content**:
+
+   - Edit `content/site.ts` with your agency information
+   - Replace logo and images in `public/` directory
+   - Update brand colors in `tailwind.config.js`
+
+3. **Run Development Server**:
+
+   ```bash
+   npm run dev
+   ```
+
+4. **Optional - Set up Admin Panel**:
+   - Create Supabase project
+   - Add environment variables
+   - Access `/admin` for content management
+
+## Deployment
+
+**Vercel (Recommended)**:
+
+1. Push to GitHub/GitLab
+2. Import project in Vercel
+3. Add environment variables
+4. Deploy automatically
+
+**Other Platforms**:
+
+- Build: `npm run build`
+- Start: `npm start`
+- Supports any Node.js hosting platform
+
+## Support & Customization
+
+This template is designed to be easily customizable for any agency or freelancer. Key areas to personalize:
+
+- **Content**: Update all text, images, and contact information
+- **Branding**: Modify colors, fonts, and visual elements
+- **Services**: Customize service offerings and descriptions
+- **Portfolio**: Add your own case studies and projects
+- **Team**: Update about section with your team information
+
+The admin panel makes ongoing content updates simple without touching code.
 
 ## License
 
-This project is provided as a learning/demo scaffold. Replace content and assets with your own as appropriate.
+This project is provided as an open-source template. Feel free to use it for your agency or client projects. Please replace all content, images, and branding with your own.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues and pull requests to improve this template.
