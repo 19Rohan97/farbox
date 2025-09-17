@@ -50,9 +50,22 @@ export function Header({
             href={headerData?.ctaUrl || site.tidycal}
             target="_blank"
             rel="noreferrer"
-            className="btn-primary"
+            className="btn-cta"
           >
             {headerData?.ctaText || "Book a call"}
+            <svg
+              aria-hidden
+              className="ml-2 h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
           </a>
         </div>
       </Container>
