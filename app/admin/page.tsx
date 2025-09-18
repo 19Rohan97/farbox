@@ -1423,7 +1423,7 @@ function SettingsEditor({
               type="color"
               value={v.brandColor || "#f24711"}
               onChange={(e) => up("brandColor", e.target.value)}
-              className="w-16 h-10 p-1 cursor-pointer"
+              className="max-w-20 h-10 cursor-pointer"
             />
             <TextInput
               value={v.brandColor || "#f24711"}
